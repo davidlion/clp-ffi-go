@@ -1,24 +1,22 @@
 package ir
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"testing"
 	"time"
-	"runtime"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/y-scope/clp-ffi-go/test"
 )
 
-func TestFourByteIrReader(t *testing.T) {
-	if 0 == len(os.Args) {
-		t.Fatalf("This test requires an input ir stream from -args: %v", os.Args)
+func TestFourByteIRReader(t *testing.T) {
+	var fpath string = os.Getenv("go_test_ir")
+	if "" == fpath {
+		t.Skip("Set an input ir stream using the env variable: go_test_ir")
 	}
 	var err error
 	var file *os.File
-	if file, err = os.Open(os.Args[len(os.Args)-1]); nil != err {
+	if file, err = os.Open(fpath); nil != err {
 		t.Fatalf("os.Open failed: %v", err)
 	}
 	defer file.Close()
@@ -26,25 +24,21 @@ func TestFourByteIrReader(t *testing.T) {
 	reader, _ := zstd.NewReader(file)
 	defer reader.Close()
 
-	var irr IrReader
+	var irr *StreamReader
 	if irr, err = ReadPreamble(reader, 4096); nil != err {
 		t.Fatalf("ReadPreamble failed: %v", err)
 	}
+	defer irr.Close()
 
-	fins := []test.Finalizer{}
 	for {
-		// log, err := irr.ReadNextLogEvent(reader)
+		// log, err := irr.ReadLogEvent(reader)
 		log, err := irr.ReadToContains(reader, []byte("ERROR"))
-		// run GC to try and test that log.Msg isn't freed by finalizer
-		runtime.GC()
 		if nil == err {
-			fmt.Printf("msg: %v | %v", time.UnixMilli(int64(log.Timestamp)), string(log.Msg))
-		} else if Eof == err || io.EOF == err {
+			t.Logf("msg: %v | %v", time.UnixMilli(int64(log.Timestamp)), string(log.LogMessageView))
+		} else if EOIR == err || io.EOF == err {
 			break
 		} else {
-			t.Fatalf("ReadNextLogEvent failed: %v", err)
+			t.Fatalf("ReadLogEvent failed: %v", err)
 		}
-		fins = append(fins, test.NewFinalizer(&log))
 	}
-	test.AssertFinalizers(t, fins...)
 }

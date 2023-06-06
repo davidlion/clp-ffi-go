@@ -10,16 +10,17 @@ func _() {
 	var x [1]struct{}
 	_ = x[Success-0]
 	_ = x[DecodeError-1]
-	_ = x[Eof-2]
+	_ = x[EOIR-2]
 	_ = x[CorruptedIR-3]
 	_ = x[CorruptedMetadata-4]
 	_ = x[IncompleteIR-5]
 	_ = x[UnsupportedVersion-6]
+	_ = x[EncoderError-7]
 }
 
-const _IRError_name = "SuccessDecodeErrorEofCorruptedIRCorruptedMetadataIncompleteIRUnsupportedVersion"
+const _IRError_name = "SuccessDecodeErrorEOIRCorruptedIRCorruptedMetadataIncompleteIRUnsupportedVersionEncoderError"
 
-var _IRError_index = [...]uint8{0, 7, 18, 21, 32, 49, 61, 79}
+var _IRError_index = [...]uint8{0, 7, 18, 22, 33, 50, 62, 80, 92}
 
 func (i IRError) String() string {
 	if i < 0 || i >= IRError(len(_IRError_index)-1) {

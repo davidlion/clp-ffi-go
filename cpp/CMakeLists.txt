@@ -30,15 +30,16 @@ add_library(${LIB_NAME}
     clp/components/core/src/ffi/encoding_methods.cpp
     clp/components/core/src/ffi/encoding_methods.hpp
     clp/components/core/src/ffi/encoding_methods.tpp
-    src/log_event.h
-    src/LogEvent.cpp
-    src/LogEvent.hpp
-    src/ir/encoding.cpp
-    src/ir/encoding.h
-    src/ir/decoding.cpp
-    src/ir/decoding.h
-    src/message/encoding.cpp
-    src/message/encoding.h
+    src/ffi_go/LogTypes.hpp
+    src/ffi_go/ir/decoder.cpp
+    src/ffi_go/ir/decoder.h
+    src/ffi_go/ir/deserializer.cpp
+    src/ffi_go/ir/deserializer.h
+    src/ffi_go/ir/encoder.cpp
+    src/ffi_go/ir/encoder.h
+    src/ffi_go/ir/LogTypes.hpp
+    src/ffi_go/ir/serializer.cpp
+    src/ffi_go/ir/serializer.h
 )
 
 target_compile_features(${LIB_NAME}
@@ -50,13 +51,14 @@ target_include_directories(${LIB_NAME}
     PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/clp/components/core/submodules
 )
 
-# target_compile_options(${LIB_NAME}
-#     PRIVATE
-#     $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-#     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
-#     )
+target_compile_options(${LIB_NAME}
+    PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
+    )
 
 # Macro providing the length of the absolute source directory path so we can
 # create a relative (rather than absolute) __FILE__ macro
