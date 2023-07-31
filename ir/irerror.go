@@ -14,7 +14,7 @@ const (
 	CorruptedMetadata
 	IncompleteIR
 	UnsupportedVersion
-	EncoderError
+	EncoderError // not from clp
 )
 
 func (self IRError) Error() string {

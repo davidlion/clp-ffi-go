@@ -11,15 +11,21 @@ import (
 	"github.com/y-scope/clp-ffi-go/ffi"
 )
 
+// An Encoder takes logging objects (commonly used/created by logging libraries)
+// and encodes them as CLP IR.
+// Close must be called to free the underlying memory and failure to do so will
+// result in a memory leak.
 type Encoder[T EightByteEncoding | FourByteEncoding] interface {
 	EncodeLogMessage(logMsg ffi.LogMessage) (*LogMessageView[T], error)
 	Close() error
 }
 
+// Return a new Encoder that produces IR using [EightByteEncoding].
 func EightByteEncoder() (Encoder[EightByteEncoding], error) {
 	return &eightByteEncoder{C.ir_encoder_eight_byte_new()}, nil
 }
 
+// Return a new Encoder that produces IR using [FourByteEncoding].
 func FourByteEncoder() (Encoder[FourByteEncoding], error) {
 	return &fourByteEncoder{C.ir_encoder_four_byte_new()}, nil
 }
@@ -28,6 +34,8 @@ type eightByteEncoder struct {
 	cptr unsafe.Pointer
 }
 
+// Close will delete the underlying C++ allocated memory used by the
+// deserializer. Failure to call Close will result in a memory leak.
 func (self *eightByteEncoder) Close() error {
 	if nil != self.cptr {
 		C.ir_encoder_eight_byte_close(self.cptr)
@@ -36,6 +44,7 @@ func (self *eightByteEncoder) Close() error {
 	return nil
 }
 
+// Encode a log message into CLP IR, returning a view of the encoded message.
 func (self *eightByteEncoder) EncodeLogMessage(
 	logMsg ffi.LogMessage,
 ) (*LogMessageView[EightByteEncoding], error) {
@@ -91,6 +100,8 @@ type fourByteEncoder struct {
 	cptr unsafe.Pointer
 }
 
+// Close will delete the underlying C++ allocated memory used by the
+// deserializer. Failure to call Close will result in a memory leak.
 func (self *fourByteEncoder) Close() error {
 	if nil != self.cptr {
 		C.ir_encoder_four_byte_close(self.cptr)
@@ -99,6 +110,7 @@ func (self *fourByteEncoder) Close() error {
 	return nil
 }
 
+// Encode a log message into CLP IR, returning a view of the encoded message.
 func (self *fourByteEncoder) EncodeLogMessage(
 	logMsg ffi.LogMessage,
 ) (*LogMessageView[FourByteEncoding], error) {
