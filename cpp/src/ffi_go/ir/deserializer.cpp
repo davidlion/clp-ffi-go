@@ -14,6 +14,7 @@
 #include <ffi_go/LogTypes.hpp>
 
 namespace ffi_go::ir {
+using namespace ffi;
 using namespace ffi::ir_stream;
 
 namespace {
@@ -22,27 +23,26 @@ namespace {
             void* buf,
             size_t buf_size,
             size_t* buf_pos,
-            void* log_event,
+            void* ir_deserializer,
             char** message,
             size_t* message_size,
             epoch_time_ms_t* timestamp_or_delta
     ) -> int {
-        LogEvent* levent{static_cast<LogEvent*>(log_event)};
+        Deserializer* deserializer{static_cast<Deserializer*>(ir_deserializer)};
         IrBuffer ir_buf{static_cast<int8_t*>(buf), buf_size};
         ir_buf.set_cursor_pos(*buf_pos);
 
         IRErrorCode err{};
-        if constexpr (std::is_same_v<encoded_variable_t, ffi::eight_byte_encoded_variable_t>) {
+        if constexpr (std::is_same_v<encoded_variable_t, eight_byte_encoded_variable_t>) {
             err = eight_byte_encoding::decode_next_message(
                     ir_buf,
-                    levent->m_message,
+                    deserializer->m_log_event.m_message,
                     *timestamp_or_delta
             );
-        } else if constexpr (std::is_same_v<encoded_variable_t, ffi::four_byte_encoded_variable_t>)
-        {
+        } else if constexpr (std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>) {
             err = four_byte_encoding::decode_next_message(
                     ir_buf,
-                    levent->m_message,
+                    deserializer->m_log_event.m_message,
                     *timestamp_or_delta
             );
         } else {
@@ -52,8 +52,8 @@ namespace {
             return static_cast<int>(err);
         }
         if (IRErrorCode_Success == err) {
-            *message = levent->m_message.data();
-            *message_size = levent->m_message.size();
+            *message = deserializer->m_log_event.m_message.data();
+            *message_size = deserializer->m_log_event.m_message.size();
         }
         *buf_pos = ir_buf.get_cursor_pos();
         return static_cast<int>(err);
@@ -64,16 +64,16 @@ extern "C" auto ir_deserializer_deserialize_eight_byte_log_event(
         void* buf,
         size_t buf_size,
         size_t* buf_pos,
-        void* log_event,
+        void* ir_deserializer,
         char** message,
         size_t* message_size,
         epoch_time_ms_t* timestamp
 ) -> int {
-    return deserialize_log_event<ffi::eight_byte_encoded_variable_t>(
+    return deserialize_log_event<eight_byte_encoded_variable_t>(
             buf,
             buf_size,
             buf_pos,
-            log_event,
+            ir_deserializer,
             message,
             message_size,
             timestamp
@@ -84,16 +84,16 @@ extern "C" auto ir_deserializer_deserialize_four_byte_log_event(
         void* buf,
         size_t buf_size,
         size_t* buf_pos,
-        void* log_event,
+        void* ir_deserializer,
         char** message,
         size_t* message_size,
         epoch_time_ms_t* timestamp_delta
 ) -> int {
-    return deserialize_log_event<ffi::four_byte_encoded_variable_t>(
+    return deserialize_log_event<four_byte_encoded_variable_t>(
             buf,
             buf_size,
             buf_pos,
-            log_event,
+            ir_deserializer,
             message,
             message_size,
             timestamp_delta
@@ -108,7 +108,7 @@ extern "C" auto ir_deserializer_deserialize_preamble(
         int8_t* metadata_type,
         size_t* metadata_pos,
         uint16_t* metadata_size,
-        void** log_event_ptr
+        void** ir_deserializer_ptr
 ) -> int {
     IrBuffer ir_buf{static_cast<int8_t*>(buf), buf_size};
     ir_buf.set_cursor_pos(*buf_pos);
@@ -129,12 +129,12 @@ extern "C" auto ir_deserializer_deserialize_preamble(
     }
 
     *buf_pos = ir_buf.get_cursor_pos();
-    *log_event_ptr = new LogEvent();
+    *ir_deserializer_ptr = new Deserializer();
     return static_cast<int>(IRErrorCode_Success);
 }
 
-extern "C" auto ir_deserializer_close(void* log_event) -> void {
+extern "C" auto ir_deserializer_close(void* ir_deserializer) -> void {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    delete static_cast<LogEvent*>(log_event);
+    delete static_cast<Deserializer*>(ir_deserializer);
 }
 }  // namespace ffi_go::ir

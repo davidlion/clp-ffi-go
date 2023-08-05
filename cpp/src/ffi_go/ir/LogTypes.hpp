@@ -6,23 +6,35 @@
 
 #include <clp/components/core/src/Defs.h>
 
+#include <ffi_go/LogTypes.hpp>
+
 namespace ffi_go::ir {
 
 template <typename>
 [[maybe_unused]] constexpr bool cAlwaysFalse{false};
 
-/*
- * The backing storage for ffi.LogEventView (ffi/ffi.go).
- * Mutating a LogEvent instance will invalidate any LogEventViews using it as
- * its backing (without any warning or way to guard in the Go layer).
- * TODO: fix above
- *
- * We reserve 1.5x the size of the log message type as a heuristic for the full
- * IR buffer size. The log message type of a log event is not guaranteed to be
- * less than or equal to the size of the actual log message, but in general
- * this is true.
+/**
+ * The backing storage for a Go ir.Deserializer.
+ * Mutating its fields will invalidate the the Views stored by an
+ * ir.Deserializer (without any warning or way to guard in the Go layer).
  */
-struct LogEventSerializer {
+struct Deserializer {
+    ffi_go::LogEvent m_log_event;
+};
+
+/**
+ * The backing storage for a Go ir.Serializer.
+ * Mutating its fields will invalidate the the Views stored by an ir.Serializer
+ * (without any warning or way to guard in the Go layer).
+ */
+struct Serializer {
+    /**
+     * Reserve capacity for the logtype and ir buffer.
+     * We reserve 1.5x the size of the log message type as a heuristic for the
+     * full IR buffer size. The log message type of a log event is not
+     * guaranteed to be less than or equal to the size of the actual log
+     * message, but in general this is true.
+     */
     auto reserve(size_t cap) -> void {
         m_logtype.reserve(cap);
         m_ir_buf.reserve(cap + cap / 2);
@@ -33,7 +45,7 @@ struct LogEventSerializer {
 };
 
 template <class encoded_variable_t>
-struct LogMessageIR {
+struct LogMessage {
     auto reserve(size_t cap) -> void { m_logtype.reserve(cap); }
 
     std::string m_logtype;
