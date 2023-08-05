@@ -16,26 +16,27 @@ namespace ffi_go::ir {
 using namespace ffi::ir_stream;
 
 namespace {
-    template <class encoded_variable_t>
+    template <class encoded_var_t>
     auto decode_log_message(
             char const* logtype,
             size_t logtype_size,
-            encoded_variable_t* vars,
+            encoded_var_t* vars,
             size_t vars_size,
             char const* dict_vars,
             size_t dict_vars_size,
             int32_t const* dict_var_end_offsets,
             size_t dict_var_end_offsets_size,
-            void* log_msg,
+            void* ir_decoder,
             char** msg_data,
             size_t* msg_size
     ) -> int {
-        LogMessage* lmsg{static_cast<LogMessage*>(log_msg)};
-        lmsg->reserve(logtype_size + dict_vars_size);
+        Decoder* decoder{static_cast<Decoder*>(ir_decoder)};
+        ffi_go::LogMessage& log_msg = decoder->m_log_message;
+        log_msg.reserve(logtype_size + dict_vars_size);
 
         IRErrorCode err{IRErrorCode_Success};
         try {
-            lmsg->m_message = ffi::decode_message<encoded_variable_t>(
+            log_msg = ffi::decode_message<encoded_var_t>(
                     std::string_view(logtype, logtype_size),
                     vars,
                     vars_size,
@@ -47,8 +48,8 @@ namespace {
             err = IRErrorCode_Decode_Error;
         }
 
-        *msg_data = lmsg->m_message.data();
-        *msg_size = lmsg->m_message.size();
+        *msg_data = log_msg.data();
+        *msg_size = log_msg.size();
         return static_cast<int>(err);
     }
 }  // namespace
@@ -62,7 +63,7 @@ extern "C" auto ir_decoder_decode_eight_byte_log_message(
         size_t dict_vars_size,
         int32_t const* dict_var_end_offsets,
         size_t dict_var_end_offsets_size,
-        void* log_msg,
+        void* ir_decoder,
         char** msg,
         size_t* msg_size
 ) -> int {
@@ -75,7 +76,7 @@ extern "C" auto ir_decoder_decode_eight_byte_log_message(
             dict_vars_size,
             dict_var_end_offsets,
             dict_var_end_offsets_size,
-            log_msg,
+            ir_decoder,
             msg,
             msg_size
     );
@@ -90,7 +91,7 @@ extern "C" auto ir_decoder_decode_four_byte_log_message(
         size_t dict_vars_size,
         int32_t const* dict_var_end_offsets,
         size_t dict_var_end_offsets_size,
-        void* log_msg,
+        void* ir_decoder,
         char** msg,
         size_t* msg_size
 ) -> int {
@@ -103,18 +104,18 @@ extern "C" auto ir_decoder_decode_four_byte_log_message(
             dict_vars_size,
             dict_var_end_offsets,
             dict_var_end_offsets_size,
-            log_msg,
+            ir_decoder,
             msg,
             msg_size
     );
 }
 
 extern "C" auto ir_decoder_new() -> void* {
-    return new LogMessage{};
+    return new Decoder{};
 }
 
-extern "C" auto ir_decoder_close(void* decoder) -> void {
+extern "C" auto ir_decoder_close(void* ir_decoder) -> void {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    delete static_cast<LogMessage*>(decoder);
+    delete static_cast<Decoder*>(ir_decoder);
 }
 }  // namespace ffi_go::ir

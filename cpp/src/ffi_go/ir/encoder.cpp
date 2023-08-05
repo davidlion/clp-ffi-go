@@ -16,28 +16,28 @@ namespace ffi_go::ir {
 using namespace ffi::ir_stream;
 
 namespace {
-    template <class encoded_variable_t>
+    template <class encoded_var_t>
     auto encode_log_message(
             char const* msg,
             size_t msg_size,
+            void* ir_encoder,
             char** logtype,
             size_t* logtype_size,
-            encoded_variable_t** vars,
+            encoded_var_t** vars,
             size_t* vars_size,
             char** dict_vars,
             size_t* dict_vars_size,
             int32_t** dict_var_end_offsets,
-            size_t* dict_var_end_offsets_size,
-            void* log_msg_ir
+            size_t* dict_var_end_offsets_size
     ) -> int {
-        LogMessageIR<encoded_variable_t>* lmsg_ir{
-                static_cast<LogMessageIR<encoded_variable_t>*>(log_msg_ir)};
-        lmsg_ir->reserve(msg_size);
+        Encoder<encoded_var_t>* encoder{static_cast<Encoder<encoded_var_t>*>(ir_encoder)};
+        LogMessage<encoded_var_t>& log_msg = encoder->m_log_message;
+        log_msg.reserve(msg_size);
 
         std::string_view const msg_view{msg, msg_size};
         std::vector<int32_t> dict_var_offsets;
         if (false
-            == ffi::encode_message(msg_view, lmsg_ir->m_logtype, lmsg_ir->m_vars, dict_var_offsets))
+            == ffi::encode_message(msg_view, log_msg.m_logtype, log_msg.m_vars, dict_var_offsets))
         {
             return -1;
         }
@@ -48,23 +48,23 @@ namespace {
         for (size_t i = 0; i < dict_var_offsets.size(); i += 2) {
             int32_t const begin_pos = dict_var_offsets[i];
             int32_t const end_pos = dict_var_offsets[i + 1];
-            lmsg_ir->m_dict_vars.insert(
-                    lmsg_ir->m_dict_vars.begin() + prev_end_off,
+            log_msg.m_dict_vars.insert(
+                    log_msg.m_dict_vars.begin() + prev_end_off,
                     msg_view.begin() + begin_pos,
                     msg_view.begin() + end_pos
             );
             prev_end_off = prev_end_off + (end_pos - begin_pos);
-            lmsg_ir->m_dict_var_end_offsets.push_back(prev_end_off);
+            log_msg.m_dict_var_end_offsets.push_back(prev_end_off);
         }
 
-        *logtype = lmsg_ir->m_logtype.data();
-        *logtype_size = lmsg_ir->m_logtype.size();
-        *vars = lmsg_ir->m_vars.data();
-        *vars_size = lmsg_ir->m_vars.size();
-        *dict_vars = lmsg_ir->m_dict_vars.data();
-        *dict_vars_size = lmsg_ir->m_dict_vars.size();
-        *dict_var_end_offsets = lmsg_ir->m_dict_var_end_offsets.data();
-        *dict_var_end_offsets_size = lmsg_ir->m_dict_var_end_offsets.size();
+        *logtype = log_msg.m_logtype.data();
+        *logtype_size = log_msg.m_logtype.size();
+        *vars = log_msg.m_vars.data();
+        *vars_size = log_msg.m_vars.size();
+        *dict_vars = log_msg.m_dict_vars.data();
+        *dict_vars_size = log_msg.m_dict_vars.size();
+        *dict_var_end_offsets = log_msg.m_dict_var_end_offsets.data();
+        *dict_var_end_offsets_size = log_msg.m_dict_var_end_offsets.size();
         return 0;
     }
 }  // namespace
@@ -72,6 +72,7 @@ namespace {
 extern "C" auto ir_encoder_encode_eight_byte_log_message(
         char const* msg,
         size_t msg_size,
+        void* ir_encoder,
         char** logtype,
         size_t* logtype_size,
         ffi::eight_byte_encoded_variable_t** vars,
@@ -79,12 +80,12 @@ extern "C" auto ir_encoder_encode_eight_byte_log_message(
         char** dict_vars,
         size_t* dict_vars_size,
         int32_t** dict_var_end_offsets,
-        size_t* dict_var_end_offsets_size,
-        void* log_msg_ir
+        size_t* dict_var_end_offsets_size
 ) -> int {
     return encode_log_message<ffi::eight_byte_encoded_variable_t>(
             msg,
             msg_size,
+            ir_encoder,
             logtype,
             logtype_size,
             vars,
@@ -92,14 +93,14 @@ extern "C" auto ir_encoder_encode_eight_byte_log_message(
             dict_vars,
             dict_vars_size,
             dict_var_end_offsets,
-            dict_var_end_offsets_size,
-            log_msg_ir
+            dict_var_end_offsets_size
     );
 }
 
 extern "C" auto ir_encoder_encode_four_byte_log_message(
         char const* msg,
         size_t msg_size,
+        void* ir_encoder,
         char** logtype,
         size_t* logtype_size,
         ffi::four_byte_encoded_variable_t** vars,
@@ -107,12 +108,12 @@ extern "C" auto ir_encoder_encode_four_byte_log_message(
         char** dict_vars,
         size_t* dict_vars_size,
         int32_t** dict_var_end_offsets,
-        size_t* dict_var_end_offsets_size,
-        void* log_msg_ir
+        size_t* dict_var_end_offsets_size
 ) -> int {
     return encode_log_message<ffi::four_byte_encoded_variable_t>(
             msg,
             msg_size,
+            ir_encoder,
             logtype,
             logtype_size,
             vars,
@@ -120,26 +121,25 @@ extern "C" auto ir_encoder_encode_four_byte_log_message(
             dict_vars,
             dict_vars_size,
             dict_var_end_offsets,
-            dict_var_end_offsets_size,
-            log_msg_ir
+            dict_var_end_offsets_size
     );
 }
 
 extern "C" auto ir_encoder_eight_byte_new() -> void* {
-    return new LogMessageIR<ffi::eight_byte_encoded_variable_t>{};
+    return new Encoder<ffi::eight_byte_encoded_variable_t>{};
 }
 
 extern "C" auto ir_encoder_four_byte_new() -> void* {
-    return new LogMessageIR<ffi::four_byte_encoded_variable_t>{};
+    return new Encoder<ffi::four_byte_encoded_variable_t>{};
 }
 
-extern "C" auto ir_encoder_eight_byte_close(void* log_msg_ir) -> void {
+extern "C" auto ir_encoder_eight_byte_close(void* ir_encoder) -> void {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    delete static_cast<LogMessageIR<ffi::eight_byte_encoded_variable_t>*>(log_msg_ir);
+    delete static_cast<Encoder<ffi::eight_byte_encoded_variable_t>*>(ir_encoder);
 }
 
-extern "C" auto ir_encoder_four_byte_close(void* log_msg_ir) -> void {
+extern "C" auto ir_encoder_four_byte_close(void* ir_encoder) -> void {
     // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    delete static_cast<LogMessageIR<ffi::four_byte_encoded_variable_t>*>(log_msg_ir);
+    delete static_cast<Encoder<ffi::four_byte_encoded_variable_t>*>(ir_encoder);
 }
 }  // namespace ffi_go::ir

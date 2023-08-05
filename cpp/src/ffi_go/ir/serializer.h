@@ -135,8 +135,8 @@ int ir_serializer_serialize_four_byte_preamble(
 
 /**
  * Clean up the underlying ir::Serializer of a Go ir.Serializer.
- * @param[in] ir_serializer An address of a serializer created and returned by
- *   ir_serializer_serialize_*_preamble
+ * @param[in] ir_serializer The address of a ir::Serializer created and returned
+ *   by ir_serializer_serialize_*_preamble
  */
 void ir_serializer_close(void* ir_serializer);
 

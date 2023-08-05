@@ -102,8 +102,8 @@ int ir_deserializer_deserialize_preamble(
 
 /**
  * Clean up the underlying ir::Deserializer of a Go ir.Deserializer.
- * @param[in] ir_deserializer An address of a deserializer created and returned
- *   by ir_deserializer_deserialize_preamble
+ * @param[in] ir_deserializer The address of a ir::Deserializer created and
+ *   returned by ir_deserializer_deserialize_preamble
  */
 void ir_deserializer_close(void* ir_deserializer);
 
