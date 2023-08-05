@@ -31,8 +31,8 @@ func TestFourByteIRReader(t *testing.T) {
 	defer irr.Close()
 
 	for {
-		// log, err := irr.ReadLogEvent(reader)
-		log, err := irr.ReadToContains(reader, []byte("ERROR"))
+		// log, err := irr.ReadLogEvent()
+		log, err := irr.ReadToContains([]byte("ERROR"))
 		if nil == err {
 			t.Logf("msg: %v | %v", time.UnixMilli(int64(log.Timestamp)), string(log.LogMessageView))
 		} else if EOIR == err || io.EOF == err {
