@@ -28,17 +28,19 @@ a CLP IR byte stream.
   )
 
   file, _ := os.Open("log-file.clp.zst")
+  defer file.Close()
   zstdReader, _ := zstd.NewReader(file)
-
+  defer reader.Close()
   irReader, _ := ir.ReadPreamble(zstdReader, 4096)
+  defer irReader.Close()
+
   for {
-    // To read every log event replace ReadToContains with
-    // ReadNextLogEvent(zstdReader)
-    log, err := irReader.ReadToContains(zstdReader, []byte("ERROR"))
+    // To read every log event replace ReadToContains with ReadNextLogEvent()
+    log, err := irReader.ReadToContains([]byte("ERROR"))
     if ir.EOIR == err || io.EOF == err {
       break
     }
-    fmt.Printf("%v %v", time.UnixMilli(int64(log.Timestamp)), string(log.Msg))
+    fmt.Printf("%v %v", time.UnixMilli(int64(log.Timestamp)), string(log.LogMessageView))
   }
 
 Building
