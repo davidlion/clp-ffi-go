@@ -319,7 +319,7 @@ func assertIRLogEvent(
 	irreader *StreamReader,
 	message ffi.LogMessage,
 ) {
-	log, err := irreader.ReadLogEvent(reader)
+	log, err := irreader.ReadLogEvent()
 	if nil != err {
 		t.Fatalf("ReadLogEvent failed: %v", err)
 	}
@@ -334,7 +334,7 @@ func assertEOIR(
 	reader io.Reader,
 	irreader *StreamReader,
 ) {
-	_, err := irreader.ReadLogEvent(reader)
+	_, err := irreader.ReadLogEvent()
 	if EOIR != err {
 		t.Fatalf("assertEOIR failed got: %v", err)
 	}

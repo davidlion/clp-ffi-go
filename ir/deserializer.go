@@ -13,12 +13,15 @@ import (
 	"github.com/y-scope/clp-ffi-go/ffi"
 )
 
-// Deserializer exports functions to deserialize log events in an IR stream and also
-// inspect the timestamp information of the stream. An Deserializer manages the
-// current state of the IR stream, but management of the buffer containing the
-// IR stream is left to the caller. Note that, failure to call [Close] will
-// leak the underlying C-allocated memory.
-// [DeserializePreamble] will return an Deserializer of the correct underlying type.
+// A Deserializer exports functions to deserialize log events from a CLP IR byte
+// stream. Deserializatoin functions take an IR buffer as input, but how that
+// buffer is materialized is left to the user. These functions return views
+// (slices) of the log events extracted from the IR. Each Deserializer owns its
+// own unique underlying memory for the views it produces/returns. This memory
+// is reused for each view, so to persist the contents the memory must be copied
+// into another object.
+// Close must be called to free the underlying memory and failure to do so will
+// result in a memory leak.
 type Deserializer interface {
 	DeserializeLogEventView(buf []byte) (*ffi.LogEventView, int, error)
 	TimestampInfo() TimestampInfo
@@ -40,7 +43,7 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 	var metadataType C.int8_t
 	var metadataPos C.size_t
 	var metadataSize C.uint16_t
-	var logEventPtr unsafe.Pointer
+	var cptr unsafe.Pointer
 
 	if err := IRError(C.ir_deserializer_deserialize_preamble(
 		unsafe.Pointer(unsafe.SliceData(buf)),
@@ -50,7 +53,7 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 		&metadataType,
 		&metadataPos,
 		&metadataSize,
-		&logEventPtr,
+		&cptr,
 	)); Success != err {
 		return nil, int(pos), err
 	}
@@ -86,9 +89,9 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 				refTs = ffi.EpochTimeMs(tsInt)
 			}
 		}
-		deserializer = &fourByteDeserializer{commonDeseriealizer{tsInfo, logEventPtr}, refTs}
+		deserializer = &fourByteDeserializer{commonDeserializer{tsInfo, cptr}, refTs}
 	} else {
-		deserializer = &eightByteDeserializer{commonDeseriealizer{tsInfo, logEventPtr}}
+		deserializer = &eightByteDeserializer{commonDeserializer{tsInfo, cptr}}
 	}
 
 	return deserializer, int(pos), nil
@@ -103,14 +106,14 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 // same object. [irStream.Close] will delete cptr, making it undefined to use
 // the irStream after this call. Failure to call Close will leak the underlying
 // C-allocated memory.
-type commonDeseriealizer struct {
+type commonDeserializer struct {
 	tsInfo TimestampInfo
 	cptr   unsafe.Pointer
 }
 
-// Close will delete cptr, making it undefined to use the irStream after this
-// call. Failure to call Close will leak the underlying C-allocated memory.
-func (self *commonDeseriealizer) Close() error {
+// Close will delete the underlying C++ allocated memory used by the
+// deserializer. Failure to call Close will result in a memory leak.
+func (self *commonDeserializer) Close() error {
 	if nil != self.cptr {
 		C.ir_deserializer_close(self.cptr)
 		self.cptr = nil
@@ -118,13 +121,13 @@ func (self *commonDeseriealizer) Close() error {
 	return nil
 }
 
-// Returns the TimestampInfo of the irStream.
-func (self commonDeseriealizer) TimestampInfo() TimestampInfo {
+// Returns the TimestampInfo used by the Deserializer.
+func (self commonDeserializer) TimestampInfo() TimestampInfo {
 	return self.tsInfo
 }
 
 type eightByteDeserializer struct {
-	commonDeseriealizer
+	commonDeserializer
 }
 
 // DeserializeLogEventView attempts to read the next log event from the IR
@@ -148,7 +151,7 @@ func (self *eightByteDeserializer) DeserializeLogEventView(
 // Therefore, we must track the previous timestamp to be able to calculate the
 // full timestamp of a log event.
 type fourByteDeserializer struct {
-	commonDeseriealizer
+	commonDeserializer
 	prevTimestamp ffi.EpochTimeMs
 }
 

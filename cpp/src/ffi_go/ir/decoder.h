@@ -18,7 +18,7 @@
  * @param[in] dict_vars_size
  * @param[in] dict_var_end_offsets
  * @param[in] dict_var_end_offsets_size
- * @param[in,out] log_msg
+ * @param[in] log_msg
  * @param[out] log_msg
  * @param[out] log_msg_size
  * @return
@@ -52,14 +52,15 @@ int ir_decoder_decode_four_byte_log_message(
 );
 
 /**
- * Create the underlying data structure for a Go ir.IRDecoder.
- * @return The new data structure's address
+ * Create a ir::Decoder used as the underlying data storage for a Go ir.Decoder.
+ * @return The new ir::Decoder's address
  */
 void* ir_decoder_new();
 
 /**
- * Clean up an underlying data structure of a Go ir.IRDecoder.
- * @param[in] decoder A address returned by decoder_new
+ * Clean up the underlying ir::Decoder of a Go ir.Decoder.
+ * @param[in] ir_encoder The address of a ir::Decoder created and returned by
+ *   ir_decoder_new
  */
 void ir_decoder_close(void* decoder);
 

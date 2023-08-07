@@ -52,6 +52,7 @@ func (self *eightByteEncoder) EncodeLogMessage(
 	err := IRError(C.ir_encoder_encode_eight_byte_log_message(
 		(*C.char)(unsafe.Pointer(unsafe.SliceData(logMsg))),
 		C.size_t(len(logMsg)),
+		self.cptr,
 		&logMsgIR.logtype,
 		&logMsgIR.logtypeSize,
 		&logMsgIR.vars,
@@ -60,7 +61,7 @@ func (self *eightByteEncoder) EncodeLogMessage(
 		&logMsgIR.dictVarsSize,
 		&logMsgIR.dictVarEndOffsets,
 		&logMsgIR.dictVarEndOffsetsSize,
-		self.cptr))
+	))
 	if Success != err {
 		return nil, EncoderError
 	}
@@ -118,6 +119,7 @@ func (self *fourByteEncoder) EncodeLogMessage(
 	err := IRError(C.ir_encoder_encode_four_byte_log_message(
 		(*C.char)(unsafe.Pointer(unsafe.SliceData(logMsg))),
 		C.size_t(len(logMsg)),
+		self.cptr,
 		&logMsgIR.logtype,
 		&logMsgIR.logtypeSize,
 		&logMsgIR.vars,
@@ -126,7 +128,7 @@ func (self *fourByteEncoder) EncodeLogMessage(
 		&logMsgIR.dictVarsSize,
 		&logMsgIR.dictVarEndOffsets,
 		&logMsgIR.dictVarEndOffsetsSize,
-		self.cptr))
+	))
 	if Success != err {
 		return nil, EncoderError
 	}

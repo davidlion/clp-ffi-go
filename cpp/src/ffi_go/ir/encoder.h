@@ -12,6 +12,7 @@
 /**
  * @param[in] msg
  * @param[in] msg_size
+ * @param[in] ir_encoder
  * @param[out] logtype
  * @param[out] logtype_size
  * @param[out] vars
@@ -20,12 +21,12 @@
  * @param[out] dict_vars_size
  * @param[out] dict_var_end_offsets
  * @param[out] dict_var_end_offsets_size
- * @param[out] log_msg_ir_ptr
  * @return
  */
 int ir_encoder_encode_eight_byte_log_message(
         char const* msg,
         size_t msg_size,
+        void* ir_encoder,
         char** logtype,
         size_t* logtype_size,
         int64_t** vars,
@@ -33,13 +34,13 @@ int ir_encoder_encode_eight_byte_log_message(
         char** dict_vars,
         size_t* dict_vars_size,
         int32_t** dict_var_end_offsets,
-        size_t* dict_var_end_offsets_size,
-        void* log_msg_ir
+        size_t* dict_var_end_offsets_size
 );
 
 int ir_encoder_encode_four_byte_log_message(
         char const* msg,
         size_t msg_size,
+        void* ir_encoder,
         char** logtype,
         size_t* logtype_size,
         int32_t** vars,
@@ -47,32 +48,33 @@ int ir_encoder_encode_four_byte_log_message(
         char** dict_vars,
         size_t* dict_vars_size,
         int32_t** dict_var_end_offsets,
-        size_t* dict_var_end_offsets_size,
-        void* log_msg_ir
+        size_t* dict_var_end_offsets_size
 );
 
 /**
- * Create the underlying data structure for a Go ir.IREncoder.
- * @return The new data structure's address
+ * Create a ir::Encoder used as the underlying data storage for a Go ir.Encoder.
+ * @return The new ir::Encoder's address
  */
 void* ir_encoder_eight_byte_new();
 
 /**
- * @copydoc encoder_eight_byte_new()
+ * @copydoc ir_encoder_eight_byte_new()
  */
 void* ir_encoder_four_byte_new();
 
 /**
- * Clean up an underlying data structure of a Go ir.IREncoder.
- * @param[in] decoder A address returned by encoder_eight_byte_new
+ * Clean up the underlying ir::Encoder of a Go ir.Encoder.
+ * @param[in] ir_encoder The address of a ir::Encoder created and returned by
+ *   ir_encoder_eight_byte_new
  */
-void ir_encoder_eight_byte_close(void* log_msg_ir);
+void ir_encoder_eight_byte_close(void* ir_encoder);
 
 /**
- * Clean up an underlying data structure of a Go ir.IREncoder.
- * @param[in] decoder A address returned by encoder_four_byte_new
+ * Clean up the underlying ir::Encoder of a Go ir.Encoder.
+ * @param[in] ir_encoder The address of a ir::Encoder created and returned by
+ *   ir_encoder_four_byte_new
  */
-void ir_encoder_four_byte_close(void* log_msg_ir);
+void ir_encoder_four_byte_close(void* ir_encoder);
 
 // NOLINTEND(modernize-use-using)
 // NOLINTEND(modernize-use-trailing-return-type)

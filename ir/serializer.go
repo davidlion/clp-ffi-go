@@ -11,6 +11,14 @@ import (
 	"github.com/y-scope/clp-ffi-go/ffi"
 )
 
+// A Serializer exports functions to serialize log events into a CLP IR byte
+// stream. Serialization functions only return views (slices) of IR bytes,
+// leaving their use to the user. Each Serializer owns its own unique underlying
+// memory for the views it produces/returns. This memory is reused for each
+// view, so to persist the contents the memory must be copied into another
+// object.
+// Close must be called to free the underlying memory and failure to do so will
+// result in a memory leak.
 type Serializer interface {
 	SerializeLogEvent(event ffi.LogEvent) (BufView, error)
 	TimestampInfo() TimestampInfo
@@ -77,8 +85,8 @@ type commonSeriealizer struct {
 	cptr   unsafe.Pointer
 }
 
-// Close will delete cptr, making it undefined to use the irStream after this
-// call. Failure to call Close will leak the underlying C-allocated memory.
+// Close will delete the underlying C++ allocated memory used by the
+// deserializer. Failure to call Close will result in a memory leak.
 func (self *commonSeriealizer) Close() error {
 	if nil != self.cptr {
 		C.ir_serializer_close(self.cptr)
