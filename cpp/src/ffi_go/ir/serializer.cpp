@@ -20,29 +20,29 @@ using namespace ffi::ir_stream;
 namespace {
     template <class encoded_variable_t>
     auto serialize_log_event(
-            char const* message,
-            size_t message_size,
+            char const* log_msg,
+            size_t log_msg_size,
             epoch_time_ms_t timestamp_or_delta,
             void* ir_serializer,
             void** ir_buf_ptr,
             void* ir_buf_size
     ) -> int {
         Serializer* serializer{static_cast<Serializer*>(ir_serializer)};
-        std::string_view const message_view(message, message_size);
+        std::string_view const log_msg_view(log_msg, log_msg_size);
         serializer->m_ir_buf.clear();
 
         bool success{false};
         if constexpr (std::is_same_v<encoded_variable_t, eight_byte_encoded_variable_t>) {
             success = eight_byte_encoding::encode_message(
                     timestamp_or_delta,
-                    message_view,
+                    log_msg_view,
                     serializer->m_logtype,
                     serializer->m_ir_buf
             );
         } else if constexpr (std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>) {
             success = four_byte_encoding::encode_message(
                     timestamp_or_delta,
-                    message_view,
+                    log_msg_view,
                     serializer->m_logtype,
                     serializer->m_ir_buf
             );
@@ -60,16 +60,16 @@ namespace {
 }  // namespace
 
 extern "C" auto ir_serializer_serialize_eight_byte_log_event(
-        char const* message,
-        size_t message_size,
+        char const* log_msg,
+        size_t log_msg_size,
         epoch_time_ms_t timestamp,
         void* ir_serializer,
         void** ir_buf_ptr,
         void* ir_buf_size
 ) -> int {
     return serialize_log_event<eight_byte_encoded_variable_t>(
-            message,
-            message_size,
+            log_msg,
+            log_msg_size,
             timestamp,
             ir_serializer,
             ir_buf_ptr,
@@ -78,16 +78,16 @@ extern "C" auto ir_serializer_serialize_eight_byte_log_event(
 }
 
 extern "C" auto ir_serializer_serialize_four_byte_log_event(
-        char const* message,
-        size_t message_size,
+        char const* log_msg,
+        size_t log_msg_size,
         epoch_time_ms_t timestamp_delta,
         void* ir_serializer,
         void** ir_buf_ptr,
         void* ir_buf_size
 ) -> int {
     return serialize_log_event<four_byte_encoded_variable_t>(
-            message,
-            message_size,
+            log_msg,
+            log_msg_size,
             timestamp_delta,
             ir_serializer,
             ir_buf_ptr,

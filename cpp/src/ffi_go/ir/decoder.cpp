@@ -27,8 +27,8 @@ namespace {
             int32_t const* dict_var_end_offsets,
             size_t dict_var_end_offsets_size,
             void* ir_decoder,
-            char** msg_data,
-            size_t* msg_size
+            char** log_msg_ptr,
+            size_t* log_msg_size
     ) -> int {
         Decoder* decoder{static_cast<Decoder*>(ir_decoder)};
         ffi_go::LogMessage& log_msg = decoder->m_log_message;
@@ -48,8 +48,8 @@ namespace {
             err = IRErrorCode_Decode_Error;
         }
 
-        *msg_data = log_msg.data();
-        *msg_size = log_msg.size();
+        *log_msg_ptr = log_msg.data();
+        *log_msg_size = log_msg.size();
         return static_cast<int>(err);
     }
 }  // namespace
@@ -64,8 +64,8 @@ extern "C" auto ir_decoder_decode_eight_byte_log_message(
         int32_t const* dict_var_end_offsets,
         size_t dict_var_end_offsets_size,
         void* ir_decoder,
-        char** msg,
-        size_t* msg_size
+        char** log_msg_ptr,
+        size_t* log_msg_size
 ) -> int {
     return decode_log_message<ffi::eight_byte_encoded_variable_t>(
             logtype,
@@ -77,8 +77,8 @@ extern "C" auto ir_decoder_decode_eight_byte_log_message(
             dict_var_end_offsets,
             dict_var_end_offsets_size,
             ir_decoder,
-            msg,
-            msg_size
+            log_msg_ptr,
+            log_msg_size
     );
 }
 
@@ -92,8 +92,8 @@ extern "C" auto ir_decoder_decode_four_byte_log_message(
         int32_t const* dict_var_end_offsets,
         size_t dict_var_end_offsets_size,
         void* ir_decoder,
-        char** msg,
-        size_t* msg_size
+        char** log_msg_ptr,
+        size_t* log_msg_size
 ) -> int {
     return decode_log_message<ffi::four_byte_encoded_variable_t>(
             logtype,
@@ -105,8 +105,8 @@ extern "C" auto ir_decoder_decode_four_byte_log_message(
             dict_var_end_offsets,
             dict_var_end_offsets_size,
             ir_decoder,
-            msg,
-            msg_size
+            log_msg_ptr,
+            log_msg_size
     );
 }
 

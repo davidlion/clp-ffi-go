@@ -24,8 +24,8 @@ namespace {
             size_t buf_size,
             size_t* buf_pos,
             void* ir_deserializer,
-            char** message,
-            size_t* message_size,
+            char** log_msg_ptr,
+            size_t* log_msg_size,
             epoch_time_ms_t* timestamp_or_delta
     ) -> int {
         Deserializer* deserializer{static_cast<Deserializer*>(ir_deserializer)};
@@ -36,13 +36,13 @@ namespace {
         if constexpr (std::is_same_v<encoded_variable_t, eight_byte_encoded_variable_t>) {
             err = eight_byte_encoding::decode_next_message(
                     ir_buf,
-                    deserializer->m_log_event.m_message,
+                    deserializer->m_log_event.m_log_msg,
                     *timestamp_or_delta
             );
         } else if constexpr (std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>) {
             err = four_byte_encoding::decode_next_message(
                     ir_buf,
-                    deserializer->m_log_event.m_message,
+                    deserializer->m_log_event.m_log_msg,
                     *timestamp_or_delta
             );
         } else {
@@ -52,8 +52,8 @@ namespace {
             return static_cast<int>(err);
         }
         if (IRErrorCode_Success == err) {
-            *message = deserializer->m_log_event.m_message.data();
-            *message_size = deserializer->m_log_event.m_message.size();
+            *log_msg_ptr = deserializer->m_log_event.m_log_msg.data();
+            *log_msg_size = deserializer->m_log_event.m_log_msg.size();
         }
         *buf_pos = ir_buf.get_cursor_pos();
         return static_cast<int>(err);
@@ -65,8 +65,8 @@ extern "C" auto ir_deserializer_deserialize_eight_byte_log_event(
         size_t buf_size,
         size_t* buf_pos,
         void* ir_deserializer,
-        char** message,
-        size_t* message_size,
+        char** log_msg_ptr,
+        size_t* log_msg_size,
         epoch_time_ms_t* timestamp
 ) -> int {
     return deserialize_log_event<eight_byte_encoded_variable_t>(
@@ -74,8 +74,8 @@ extern "C" auto ir_deserializer_deserialize_eight_byte_log_event(
             buf_size,
             buf_pos,
             ir_deserializer,
-            message,
-            message_size,
+            log_msg_ptr,
+            log_msg_size,
             timestamp
     );
 }
@@ -85,8 +85,8 @@ extern "C" auto ir_deserializer_deserialize_four_byte_log_event(
         size_t buf_size,
         size_t* buf_pos,
         void* ir_deserializer,
-        char** message,
-        size_t* message_size,
+        char** log_msg_ptr,
+        size_t* log_msg,
         epoch_time_ms_t* timestamp_delta
 ) -> int {
     return deserialize_log_event<four_byte_encoded_variable_t>(
@@ -94,8 +94,8 @@ extern "C" auto ir_deserializer_deserialize_four_byte_log_event(
             buf_size,
             buf_pos,
             ir_deserializer,
-            message,
-            message_size,
+            log_msg_ptr,
+            log_msg,
             timestamp_delta
     );
 }
