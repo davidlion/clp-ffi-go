@@ -63,7 +63,7 @@ func (self *eightByteEncoder) EncodeLogMessage(
 		&logMsgIR.dictVarEndOffsetsSize,
 	))
 	if Success != err {
-		return nil, EncoderError
+		return nil, EncodeError
 	}
 	var logMsgView LogMessageView[EightByteEncoding]
 	logMsgView.Logtype = unsafe.Slice(
@@ -73,7 +73,7 @@ func (self *eightByteEncoder) EncodeLogMessage(
 	if 0 != logMsgIR.varsSize {
 		logMsgView.Vars = unsafe.Slice((*int64)(logMsgIR.vars), logMsgIR.varsSize)
 		if nil == logMsgView.Vars {
-			return nil, EncoderError
+			return nil, EncodeError
 		}
 	}
 	if 0 != logMsgIR.dictVarsSize {
@@ -82,7 +82,7 @@ func (self *eightByteEncoder) EncodeLogMessage(
 			logMsgIR.dictVarsSize,
 		)
 		if nil == logMsgView.DictVars {
-			return nil, EncoderError
+			return nil, EncodeError
 		}
 	}
 	if 0 != logMsgIR.dictVarEndOffsetsSize {
@@ -91,7 +91,7 @@ func (self *eightByteEncoder) EncodeLogMessage(
 			logMsgIR.dictVarEndOffsetsSize,
 		)
 		if nil == logMsgView.DictVarEndOffsets {
-			return nil, EncoderError
+			return nil, EncodeError
 		}
 	}
 	return &logMsgView, nil
@@ -130,7 +130,7 @@ func (self *fourByteEncoder) EncodeLogMessage(
 		&logMsgIR.dictVarEndOffsetsSize,
 	))
 	if Success != err {
-		return nil, EncoderError
+		return nil, EncodeError
 	}
 	var logMsgView LogMessageView[FourByteEncoding]
 	logMsgView.Logtype = unsafe.Slice(
@@ -140,7 +140,7 @@ func (self *fourByteEncoder) EncodeLogMessage(
 	if 0 != logMsgIR.varsSize {
 		logMsgView.Vars = unsafe.Slice((*int32)(logMsgIR.vars), logMsgIR.varsSize)
 		if nil == logMsgView.Vars {
-			return nil, EncoderError
+			return nil, EncodeError
 		}
 	}
 	if 0 != logMsgIR.dictVarsSize {
@@ -149,7 +149,7 @@ func (self *fourByteEncoder) EncodeLogMessage(
 			logMsgIR.dictVarsSize,
 		)
 		if nil == logMsgView.DictVars {
-			return nil, EncoderError
+			return nil, EncodeError
 		}
 	}
 	if 0 != logMsgIR.dictVarEndOffsetsSize {
@@ -158,7 +158,7 @@ func (self *fourByteEncoder) EncodeLogMessage(
 			logMsgIR.dictVarEndOffsetsSize,
 		)
 		if nil == logMsgView.DictVarEndOffsets {
-			return nil, EncoderError
+			return nil, EncodeError
 		}
 	}
 	return &logMsgView, nil

@@ -15,12 +15,12 @@ func _() {
 	_ = x[CorruptedMetadata-4]
 	_ = x[IncompleteIR-5]
 	_ = x[UnsupportedVersion-6]
-	_ = x[EncoderError-7]
+	_ = x[EncodeError-7]
 }
 
-const _IRError_name = "SuccessDecodeErrorEOIRCorruptedIRCorruptedMetadataIncompleteIRUnsupportedVersionEncoderError"
+const _IRError_name = "SuccessDecodeErrorEOIRCorruptedIRCorruptedMetadataIncompleteIRUnsupportedVersionEncodeError"
 
-var _IRError_index = [...]uint8{0, 7, 18, 22, 33, 50, 62, 80, 92}
+var _IRError_index = [...]uint8{0, 7, 18, 22, 33, 50, 62, 80, 91}
 
 func (i IRError) String() string {
 	if i < 0 || i >= IRError(len(_IRError_index)-1) {
