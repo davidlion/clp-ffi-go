@@ -12,9 +12,8 @@ import (
 )
 
 // A Decoder takes objects encoded in CLP IR as input and returns them in their
-// natural state prior to encoding.
-// Close must be called to free the underlying memory and failure to do so will
-// result in a memory leak.
+// natural state prior to encoding. Close must be called to free the underlying
+// memory and failure to do so will result in a memory leak.
 type Decoder[T EightByteEncoding | FourByteEncoding] interface {
 	DecodeLogMessage(logMsg LogMessage[T]) (*ffi.LogMessageView, error)
 	Close() error

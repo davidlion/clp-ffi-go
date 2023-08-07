@@ -7,14 +7,13 @@ import (
 	"github.com/y-scope/clp-ffi-go/ffi"
 )
 
-// StreamReader abstracts maintenance of a buffer containing a Deserializer. It
-// keeps track of the range [start, end) in the buffer containing valid,
+// StreamReader abstracts maintenance of a buffer containing a [Deserializer].
+// It keeps track of the range [start, end) in the buffer containing valid,
 // unconsumed CLP IR. [ReadPreamble] will construct a StreamReader with the
 // appropriate Deserializer based on the consumed CLP IR preamble. The buffer
 // will grow if it is not large enough to service a read call (e.g. it cannot
-// hold the next log event in the IR).
-// Close must be called to free the underlying memory and failure to do so will
-// result in a memory leak.
+// hold the next log event in the IR). Close must be called to free the
+// underlying memory and failure to do so will result in a memory leak.
 type StreamReader struct {
 	Deserializer
 	Reader io.Reader
@@ -23,13 +22,13 @@ type StreamReader struct {
 	end    int
 }
 
-// ReadPreamble creates a new StreamReader and uses [DeserializePreamble] to
-// read a CLP IR preamble from the io.Reader, r. bufSize denotes the initial
+// ReadPreamble creates a new [StreamReader] and uses [DeserializePreamble] to
+// read a CLP IR preamble from the [io.Reader], r. bufSize denotes the initial
 // size to use for the StreamReader's buffer that the io.Reader is read into.
 // This buffer will grow if it is too small to contain the preamble or next log
 // event. Returns:
-//   - success: valid *StreamReader and nil == error
-//   - error: *StreamReader is nil and error propagated from
+//   - success: valid [*StreamReader] and nil == error
+//   - error: [*StreamReader] is nil and error propagated from
 //     [DeserializePreamble] or [StreamReader.read]
 func ReadPreamble(r io.Reader, bufSize int) (*StreamReader, error) {
 	irr := &StreamReader{nil, r, make([]byte, bufSize), 0, 0}
@@ -60,15 +59,14 @@ func (self *StreamReader) Close() error {
 	return self.Deserializer.Close()
 }
 
-// ReadLogEvent uses [DeserializeLogEventView] to read from the CLP IR byte
+// ReadLogEvent uses [DeserializeLogEvent] to read from the CLP IR byte
 // stream. The underlying buffer will grow if it is too small to contain the
-// next log event. Returns:
-//   - success: valid *ffi.LogEventView and nil == error
-//   - error: *ffi.LogEventView is nil and error propagated from
-//     [DeserializeLogEventView] or [StreamReader.read]
+// next log event. On error returns:
+//   - nil *ffi.LogEventView
+//   - error propagated from [DeserializeLogEvent] or [StreamReader.read]
 func (self *StreamReader) ReadLogEvent() (*ffi.LogEventView, error) {
 	for {
-		event, pos, err := self.DeserializeLogEventView(self.buf[self.start:self.end])
+		event, pos, err := self.DeserializeLogEvent(self.buf[self.start:self.end])
 		if nil == err {
 			self.start += pos
 			return event, nil
@@ -85,8 +83,8 @@ func (self *StreamReader) ReadLogEvent() (*ffi.LogEventView, error) {
 }
 
 // Read the CLP IR byte stream using the io.Reader until f returns true for a
-// [ffi.LogEvent]. The succeeding LogEvent is returned. Errors are propagated
-// from ReadLogEvent.
+// [ffi.LogEvent]. The successful LogEvent is returned. Errors are propagated
+// from [ReadLogEvent].
 func (self *StreamReader) ReadToFunc(
 	f func(*ffi.LogEventView) bool,
 ) (*ffi.LogEventView, error) {

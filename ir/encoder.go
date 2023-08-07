@@ -12,9 +12,8 @@ import (
 )
 
 // An Encoder takes logging objects (commonly used/created by logging libraries)
-// and encodes them as CLP IR.
-// Close must be called to free the underlying memory and failure to do so will
-// result in a memory leak.
+// and encodes them as CLP IR. Close must be called to free the underlying
+// memory and failure to do so will result in a memory leak.
 type Encoder[T EightByteEncoding | FourByteEncoding] interface {
 	EncodeLogMessage(logMsg ffi.LogMessage) (*LogMessageView[T], error)
 	Close() error

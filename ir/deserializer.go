@@ -19,24 +19,23 @@ import (
 // (slices) of the log events extracted from the IR. Each Deserializer owns its
 // own unique underlying memory for the views it produces/returns. This memory
 // is reused for each view, so to persist the contents the memory must be copied
-// into another object.
-// Close must be called to free the underlying memory and failure to do so will
-// result in a memory leak.
+// into another object. Close must be called to free the underlying memory and
+// failure to do so will result in a memory leak.
 type Deserializer interface {
-	DeserializeLogEventView(buf []byte) (*ffi.LogEventView, int, error)
+	DeserializeLogEvent(buf []byte) (*ffi.LogEventView, int, error)
 	TimestampInfo() TimestampInfo
 	Close() error
 }
 
-// DeserializePreamble attempts to read an IR stream preamble from buf, returning an
-// IRDeserializer (of the correct stream encoding size), the position read to in buf
-// (the end of the preamble), and an error. Note the metadata stored in the
-// preamble is sparse and certain fields in TimestampInfo may be 0 value.
-// Return values:
-//   - nil == error: successful deserialize
-//   - nil != error: IRDeserializer will be nil, pos may be non-zero for debugging purposes
-//   - type [IRError]: CLP failed to successfully deserialize
-//   - type from [encoding/json]: unmarshalling the metadata failed
+// DeserializePreamble attempts to read an IR stream preamble from buf,
+// returning an Deserializer (of the correct stream encoding size), the position
+// read to in buf (the end of the preamble), and an error. Note the metadata
+// stored in the preamble is sparse and certain fields in TimestampInfo may be 0
+// value. On error returns:
+//   - nil Deserializer
+//   - the position may still be non-zero for debugging purposes
+//   - [IRError] error: CLP failed to successfully deserialize
+//   - [encoding/json] error: unmarshalling the metadata failed
 func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 	var pos C.size_t
 	var irEncoding C.int8_t
@@ -97,15 +96,11 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 	return deserializer, int(pos), nil
 }
 
-// irStream contains fields common to all types of CLP IR streams. All streams
-// must have information regarding their timestamp to make sense of the
-// timestamp of the log events.
-// [cptr] holds a reference to the underlying C object used for either encoding
-// or decoding. Each ir stream owns a unique C object to allow concurrent
-// encoding/decoding and all calls using a irStream instance will reuse this
-// same object. [irStream.Close] will delete cptr, making it undefined to use
-// the irStream after this call. Failure to call Close will leak the underlying
-// C-allocated memory.
+// commonDeserializer contains fields common to all types of CLP IR encoding.
+// TimestampInfo stores information common to all timestamps found in the IR.
+// cptr holds a reference to the underlying C++ objected used as backing storage
+// for the Views returned by the deserializer. Close must be called to free this
+// underlying memory and failure to do so will result in a memory leak.
 type commonDeserializer struct {
 	tsInfo TimestampInfo
 	cptr   unsafe.Pointer
@@ -130,47 +125,42 @@ type eightByteDeserializer struct {
 	commonDeserializer
 }
 
-// DeserializeLogEventView attempts to read the next log event from the IR
-// stream in buf, returning the LogEventView, the position read to in buf (the
-// end of the LogEventView in buf), and an error.
-// Return values:
-//   - nil == error: successful deserialize
-//   - nil != error: ffi.LogEventView will be nil, position  may be non-zero
-//     for debugging purposes
-//   - [EOIR]: CLP found the IR stream EOF tag
-//   - [IRError]: CLP failed to successfully deserialize
-func (self *eightByteDeserializer) DeserializeLogEventView(
+// DeserializeLogEvent attempts to read the next log event from the IR stream in
+// buf, returning the deserialized [ffi.LogEventView], the position read to in
+// buf (the end of the log event in buf), and an error. On error returns:
+//   - nil *ffi.LogEventView
+//   - the position may still be non-zero for debugging purposes
+//   - [IRError] error: CLP failed to successfully deserialize
+//   - [EOIR] error: CLP found the IR stream EOF tag
+func (self *eightByteDeserializer) DeserializeLogEvent(
 	buf []byte,
 ) (*ffi.LogEventView, int, error) {
-	return deserializeLogEventView(self, buf)
+	return deserializeLogEvent(self, buf)
 }
 
-// FourByteIrStream contains both a common CLP IR stream (irStream) and keeps
-// track of the previous timestamp seen in the stream. Four byte encoding
-// encodes log event timestamps as time deltas from the previous log event.
-// Therefore, we must track the previous timestamp to be able to calculate the
-// full timestamp of a log event.
+// fourByteDeserializer contains both a common CLP IR deserializer and stores
+// the previously seen log event's timestamp. The previous timestamp is
+// necessary to calculate the current timestamp as four byte encoding only
+// encodes the timestamp delta between the current log event and the previous.
 type fourByteDeserializer struct {
 	commonDeserializer
 	prevTimestamp ffi.EpochTimeMs
 }
 
-// DeserializeLogEventView attempts to read the next log event from the IR
-// stream in buf, returning the LogEventView, the position read to in buf (the
-// end of the LogEventView in buf), and an error.
-// Return values:
-//   - nil == error: successful deserialize
-//   - nil != error: ffi.LogEventView will be nil, position may be non-zero for
-//     debugging purposes
-//   - [EOIR]: CLP found the IR stream EOF tag
-//   - [IRError]: CLP failed to successfully deserialize
-func (self *fourByteDeserializer) DeserializeLogEventView(
+// DeserializeLogEvent attempts to read the next log event from the IR stream in
+// buf, returning the deserialized [ffi.LogEventView], the position read to in
+// buf (the end of the log event in buf), and an error. On error returns:
+//   - nil *ffi.LogEventView
+//   - the position may still be non-zero for debugging purposes
+//   - [IRError] error: CLP failed to successfully deserialize
+//   - [EOIR] error: CLP found the IR stream EOF tag
+func (self *fourByteDeserializer) DeserializeLogEvent(
 	buf []byte,
 ) (*ffi.LogEventView, int, error) {
-	return deserializeLogEventView(self, buf)
+	return deserializeLogEvent(self, buf)
 }
 
-func deserializeLogEventView(
+func deserializeLogEvent(
 	deserializer Deserializer,
 	buf []byte,
 ) (*ffi.LogEventView, int, error) {

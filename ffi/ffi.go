@@ -1,5 +1,6 @@
-// The ffi package contains the general types representing log events as they
-// are created and used by logging functions or libraries.
+// The ffi package contains the general types representing log events  created
+// and used by logging functions or libraries. In other words log events with no
+// sort of CLP encoding or serializing.
 package ffi
 
 // Mirrors cpp type epoch_time_ms_t

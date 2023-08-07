@@ -215,13 +215,13 @@ func serializeIRPreamble(
 	var preambleIR BufView
 	switch args.encoding {
 	case eightByteEncoding:
-		serializer, preambleIR, err = EightByteSeriealizer(
+		serializer, preambleIR, err = EightByteSerializer(
 			preamble.Pattern,
 			preamble.PatternSyntax,
 			preamble.TimeZoneId,
 		)
 	case fourByteEncoding:
-		serializer, preambleIR, err = FourByteSeriealizer(
+		serializer, preambleIR, err = FourByteSerializer(
 			preamble.Pattern,
 			preamble.PatternSyntax,
 			preamble.TimeZoneId,
@@ -275,14 +275,14 @@ func assertIRPreamble(
 		)
 	}
 	if fourByteEncoding == args.encoding {
-		irstream, ok := irreader.Deserializer.(*fourByteDeserializer)
+		deserializer, ok := irreader.Deserializer.(*fourByteDeserializer)
 		if false == ok {
-			t.Fatalf("casting IRDeserializer to *fourByteDeserializer failed for fourByteEncoding.")
+			t.Fatalf("casting Deserializer to *fourByteDeserializer failed for fourByteEncoding.")
 		}
-		if irstream.prevTimestamp != preamble.prevTimestamp {
+		if deserializer.prevTimestamp != preamble.prevTimestamp {
 			t.Fatalf(
 				"ReadPreamble wrong reference timestamp: '%v' != '%v'",
-				irstream.prevTimestamp,
+				deserializer.prevTimestamp,
 				preamble.prevTimestamp,
 			)
 		}
