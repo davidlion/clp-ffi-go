@@ -160,7 +160,7 @@ func serializeLogEvent(
 	switch irs := serializer.(type) {
 	case *eightByteSerializer:
 		err = IRError(C.ir_serializer_serialize_eight_byte_log_event(
-			(*C.char)(unsafe.Pointer(unsafe.SliceData(event.LogMessage))),
+			(*C.char)(unsafe.Pointer(unsafe.StringData(event.LogMessage))),
 			C.size_t(len(event.LogMessage)),
 			C.int64_t(event.Timestamp),
 			irs.cptr,
@@ -168,7 +168,7 @@ func serializeLogEvent(
 			unsafe.Pointer(&bufSize)))
 	case *fourByteSerializer:
 		err = IRError(C.ir_serializer_serialize_four_byte_log_event(
-			(*C.char)(unsafe.Pointer(unsafe.SliceData(event.LogMessage))),
+			(*C.char)(unsafe.Pointer(unsafe.StringData(event.LogMessage))),
 			C.size_t(len(event.LogMessage)),
 			C.int64_t(irs.prevTimestamp-event.Timestamp),
 			irs.cptr,

@@ -12,8 +12,8 @@ type EpochTimeMs int64
 // remain valid until a new LogMessageView is returned by the same object (e.g.
 // an ir.Deserializer) that retuend x.
 type (
-	LogMessageView = []byte
-	LogMessage     = []byte
+	LogMessageView = string
+	LogMessage     = string
 )
 
 // LogEvent provides programmatic access to the various components of a log

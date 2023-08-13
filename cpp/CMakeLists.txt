@@ -4,6 +4,12 @@ project(clp_ffi
     LANGUAGES CXX C
 )
 
+# Enable compile commands by default if the generator supports it.
+if(NOT CMAKE_EXPORT_COMPILE_COMMANDS AND CMAKE_GENERATOR MATCHES "Ninja|Unix Makefiles")
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL
+        "Enable/Disable output of compile commands during generation." FORCE)
+endif()
+
 # Set default build type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(default_build_type "Release")
@@ -23,6 +29,9 @@ endif()
 
 add_library(${LIB_NAME}
     clp/components/core/src/Defs.h
+    clp/components/core/src/string_utils.cpp
+    clp/components/core/src/string_utils.hpp
+    clp/components/core/src/string_utils.tpp
     clp/components/core/src/ffi/ir_stream/encoding_methods.cpp
     clp/components/core/src/ffi/ir_stream/encoding_methods.hpp
     clp/components/core/src/ffi/ir_stream/decoding_methods.cpp
@@ -40,6 +49,8 @@ add_library(${LIB_NAME}
     src/ffi_go/ir/LogTypes.hpp
     src/ffi_go/ir/serializer.cpp
     src/ffi_go/ir/serializer.h
+    src/ffi_go/search/wildcard_match.cpp
+    src/ffi_go/search/wildcard_match.h
 )
 
 target_compile_features(${LIB_NAME}

@@ -12,17 +12,27 @@
 // TODO: replace with clp c-compatible header once it exists
 typedef int64_t epoch_time_ms_t;
 
+typedef struct {
+    void* m_buf;
+    size_t m_buf_size;
+} BufView;
+
+typedef struct {
+    char* m_log_message;
+    size_t m_log_message_size;
+    epoch_time_ms_t m_timestamp;
+} CgoLogEvent;
+
 /**
  * Given a CLP IR buffer with eight byte encoding, deserialize the next log
- * event. The buffer position is updated to the end of the found log event. All
- * pointer parameters must be non-null (non-nil Cgo C.<type> pointer or
- * unsafe.Pointer from Go).
+ * event. Return the components of the found log event and the buffer position
+ * it ends at. All pointer parameters must be non-null (non-nil Cgo C.<type>
+ * pointer or unsafe.Pointer from Go).
  * @param[in] buf Byte buffer/slice containing CLP IR
  * @param[in] buf_size Size of buf
- * @param[in,out] buf_pos Current position in buf to begin reading from and
- *     returns the position read to
  * @param[in] ir_deserializer ir::Deserializer to be used as storage for a found
  *     log event
+ * @param[out] buf_pos Position in buf read to
  * @param[out] log_msg_ptr Log message of the event stored in ir_deserializer
  * @param[out] log_msg_size Size of the log message of log_msg_ptr
  * @param[out] timestamp Timestamp of the log event
@@ -30,26 +40,22 @@ typedef int64_t epoch_time_ms_t;
  *     ffi::ir_stream::eight_byte_encoding::decode_next_message
  */
 int ir_deserializer_deserialize_eight_byte_log_event(
-        void* buf,
-        size_t buf_size,
-        size_t* buf_pos,
+        BufView buf_view,
         void* ir_deserializer,
-        char** log_msg_ptr,
-        size_t* log_msg_size,
-        epoch_time_ms_t* timestamp
+        size_t* buf_pos,
+        CgoLogEvent* log_event
 );
 
 /**
  * Given a CLP IR buffer with four byte encoding, deserialize the next log
- * event. The buffer position is updated to the end of the found log event. All
- * pointer parameters must be non-null (non-nil Cgo C.<type> pointer or
- * unsafe.Pointer from Go).
+ * event. Return the components of the found log event and the buffer position
+ * it ends at. All pointer parameters must be non-null (non-nil Cgo C.<type>
+ * pointer or unsafe.Pointer from Go).
  * @param[in] buf Byte buffer/slice containing CLP IR
  * @param[in] buf_size Size of buf
- * @param[in,out] buf_pos Current position in buf to begin reading from and
- *     returns the position read to
  * @param[in] ir_deserializer ir::Deserializer to be used as storage for a found
  *     log event
+ * @param[out] buf_pos Position in buf read to
  * @param[out] log_msg_ptr Log message of the event stored in ir_deserializer
  * @param[out] log_msg_size Size of the log message of log_msg_ptr
  * @param[out] timestamp Timestamp of the log event
@@ -57,13 +63,10 @@ int ir_deserializer_deserialize_eight_byte_log_event(
  *     ffi::ir_stream::four_byte_encoding::decode_next_message
  */
 int ir_deserializer_deserialize_four_byte_log_event(
-        void* buf,
-        size_t buf_size,
-        size_t* buf_pos,
+        BufView buf_view,
         void* ir_deserializer,
-        char** log_msg_ptr,
-        size_t* log_msg_size,
-        epoch_time_ms_t* timestamp_delta
+        size_t* buf_pos,
+        CgoLogEvent* log_event
 );
 
 /**
@@ -75,8 +78,7 @@ int ir_deserializer_deserialize_four_byte_log_event(
  * non-null (non-nil Cgo C.<type> pointer or unsafe.Pointer from Go).
  * @param[in] buf Buffer containing CLP IR
  * @param[in] buf_size Size of buf
- * @param[in,out] buf_pos Current position in buf to begin reading from and
- *     returns the position read to
+ * @param[out] buf_pos Position in buf read to
  * @param[out] ir_encoding IR encoding type (1: four byte, 0: eight byte)
  * @param[out] metadata_type Type of metadata in preamble (e.g. json)
  * @param[out] metadata_pos Position in buf where the metadata begins
@@ -86,8 +88,7 @@ int ir_deserializer_deserialize_four_byte_log_event(
  *     ffi::ir_stream::get_encoding_type or ffi::ir_stream::decode_preamble
  */
 int ir_deserializer_deserialize_preamble(
-        void* buf,
-        size_t buf_size,
+        BufView buf_view,
         size_t* buf_pos,
         int8_t* ir_encoding,
         int8_t* metadata_type,

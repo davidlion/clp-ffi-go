@@ -106,6 +106,6 @@ func decodeLogMessage(
 	if Success != err {
 		return nil, DecodeError
 	}
-	view := unsafe.Slice((*byte)((unsafe.Pointer)(msg)), msgSize)
+	view := unsafe.String((*byte)((unsafe.Pointer)(msg)), msgSize)
 	return &view, nil
 }

@@ -49,7 +49,7 @@ func (self *eightByteEncoder) EncodeLogMessage(
 ) (*LogMessageView[EightByteEncoding], error) {
 	var logMsgIR logMessageCVars[C.int64_t]
 	err := IRError(C.ir_encoder_encode_eight_byte_log_message(
-		(*C.char)(unsafe.Pointer(unsafe.SliceData(logMsg))),
+		(*C.char)(unsafe.Pointer(unsafe.StringData(logMsg))),
 		C.size_t(len(logMsg)),
 		self.cptr,
 		&logMsgIR.logtype,
@@ -116,7 +116,7 @@ func (self *fourByteEncoder) EncodeLogMessage(
 ) (*LogMessageView[FourByteEncoding], error) {
 	var logMsgIR logMessageCVars[C.int32_t]
 	err := IRError(C.ir_encoder_encode_four_byte_log_message(
-		(*C.char)(unsafe.Pointer(unsafe.SliceData(logMsg))),
+		(*C.char)(unsafe.Pointer(unsafe.StringData(logMsg))),
 		C.size_t(len(logMsg)),
 		self.cptr,
 		&logMsgIR.logtype,

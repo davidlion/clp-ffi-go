@@ -33,20 +33,25 @@ type Deserializer interface {
 // stored in the preamble is sparse and certain fields in TimestampInfo may be 0
 // value. On error returns:
 //   - nil Deserializer
-//   - the position may still be non-zero for debugging purposes
+//   - 0 position
 //   - [IRError] error: CLP failed to successfully deserialize
 //   - [encoding/json] error: unmarshalling the metadata failed
 func DeserializePreamble(buf []byte) (Deserializer, int, error) {
+	if 0 >= len(buf) {
+		return nil, 0, IncompleteIR
+	}
+	bufview := C.BufView{
+		unsafe.Pointer(unsafe.SliceData(buf)),
+		C.size_t(len(buf)),
+	}
 	var pos C.size_t
 	var irEncoding C.int8_t
 	var metadataType C.int8_t
 	var metadataPos C.size_t
 	var metadataSize C.uint16_t
 	var cptr unsafe.Pointer
-
 	if err := IRError(C.ir_deserializer_deserialize_preamble(
-		unsafe.Pointer(unsafe.SliceData(buf)),
-		C.size_t(len(buf)),
+		bufview,
 		&pos,
 		&irEncoding,
 		&metadataType,
@@ -58,7 +63,7 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 	}
 
 	if 1 != metadataType {
-		return nil, int(pos), UnsupportedVersion
+		return nil, 0, UnsupportedVersion
 	}
 
 	var metadata map[string]interface{}
@@ -66,7 +71,7 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 		buf[metadataPos:metadataPos+C.size_t(metadataSize)],
 		&metadata,
 	); nil != err {
-		return nil, int(pos), err
+		return nil, 0, err
 	}
 
 	var tsInfo TimestampInfo
@@ -129,7 +134,7 @@ type eightByteDeserializer struct {
 // buf, returning the deserialized [ffi.LogEventView], the position read to in
 // buf (the end of the log event in buf), and an error. On error returns:
 //   - nil *ffi.LogEventView
-//   - the position may still be non-zero for debugging purposes
+//   - 0 position
 //   - [IRError] error: CLP failed to successfully deserialize
 //   - [EOIR] error: CLP found the IR stream EOF tag
 func (self *eightByteDeserializer) DeserializeLogEvent(
@@ -151,7 +156,7 @@ type fourByteDeserializer struct {
 // buf, returning the deserialized [ffi.LogEventView], the position read to in
 // buf (the end of the log event in buf), and an error. On error returns:
 //   - nil *ffi.LogEventView
-//   - the position may still be non-zero for debugging purposes
+//   - 0 position
 //   - [IRError] error: CLP failed to successfully deserialize
 //   - [EOIR] error: CLP found the IR stream EOF tag
 func (self *fourByteDeserializer) DeserializeLogEvent(
@@ -167,44 +172,38 @@ func deserializeLogEvent(
 	if 0 >= len(buf) {
 		return nil, 0, IncompleteIR
 	}
+	bufview := C.BufView{
+		unsafe.Pointer(unsafe.SliceData(buf)),
+		C.size_t(len(buf)),
+	}
 	var pos C.size_t
-	var msg *C.char
-	var msgSize C.size_t
+	var logevent C.CgoLogEvent
 	var event ffi.LogEventView
 
 	var err error
 	switch irs := deserializer.(type) {
 	case *eightByteDeserializer:
-		var timestamp C.int64_t
 		err = IRError(C.ir_deserializer_deserialize_eight_byte_log_event(
-			unsafe.Pointer(unsafe.SliceData(buf)),
-			C.size_t(len(buf)),
-			&pos,
+			bufview,
 			irs.cptr,
-			&msg,
-			&msgSize,
-			&timestamp))
-		if Success == err {
-			event.Timestamp = ffi.EpochTimeMs(timestamp)
-		}
+			&pos,
+			&logevent,
+		))
 	case *fourByteDeserializer:
-		var timestampDelta C.int64_t
 		err = IRError(C.ir_deserializer_deserialize_four_byte_log_event(
-			unsafe.Pointer(unsafe.SliceData(buf)),
-			C.size_t(len(buf)),
-			&pos,
+			bufview,
 			irs.cptr,
-			&msg,
-			&msgSize,
-			&timestampDelta))
-		if Success == err {
-			irs.prevTimestamp += ffi.EpochTimeMs(timestampDelta)
-			event.Timestamp = irs.prevTimestamp
-		}
+			&pos,
+			&logevent,
+		))
 	}
 	if Success != err {
-		return nil, int(pos), err
+		return nil, 0, err
 	}
-	event.LogMessageView = unsafe.Slice((*byte)((unsafe.Pointer)(msg)), msgSize)
+	event.LogMessageView = unsafe.String(
+		(*byte)((unsafe.Pointer)(logevent.m_log_message)),
+		logevent.m_log_message_size,
+	)
+	event.Timestamp = ffi.EpochTimeMs(logevent.m_timestamp)
 	return &event, int(pos), nil
 }

@@ -31,16 +31,21 @@ a CLP IR byte stream.
   defer file.Close()
   zstdReader, _ := zstd.NewReader(file)
   defer reader.Close()
-  irReader, _ := ir.ReadPreamble(zstdReader, 4096)
+  irReader, _ := ir.NewReader(zstdReader, 4096)
   defer irReader.Close()
 
+  var err error
   for {
-    // To read every log event replace ReadToContains with ReadNextLogEvent()
-    log, err := irReader.ReadToContains([]byte("ERROR"))
-    if ir.EOIR == err || io.EOF == err {
+    var log *ffi.LogEventView
+    // To read every log event replace ReadToContains with Read()
+    log, err = irr.ReadToContains("ERROR")
+    if nil != err {
       break
     }
-    fmt.Printf("%v %v", time.UnixMilli(int64(log.Timestamp)), string(log.LogMessageView))
+    fmt.Printf("%v %v", time.UnixMilli(int64(log.Timestamp)), log.LogMessageView)
+  }
+  if EOIR != err {
+    fmt.Printf("Reader.Read failed: %v", err)
   }
 
 Building

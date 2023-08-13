@@ -1,7 +1,6 @@
 package ir
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math"
@@ -34,40 +33,40 @@ func TestPreamble(t *testing.T) {
 
 func TestLogMessagesCombo(t *testing.T) {
 	messages := []ffi.LogMessage{
-		[]byte("static text dict=var notint123 -1.234 4321."),
-		[]byte("static123 text321 dict=var0123 321.1234 -3210."),
+		"static text dict=var notint123 -1.234 4321.",
+		"static123 text321 dict=var0123 321.1234 -3210.",
 	}
 	testLogMessagesBasic(t, messages)
 }
 
 func TestLogMessagesDict(t *testing.T) {
 	messages := []ffi.LogMessage{
-		[]byte("textint1234 textequal=variable"),
-		[]byte(fmt.Sprintf("test=bigint %v", math.MaxInt32+1)),
+		"textint1234 textequal=variable",
+		fmt.Sprintf("test=bigint %v", math.MaxInt32+1),
 	}
 	testLogMessagesBasic(t, messages)
 }
 
 func TestLogMessagesFloat(t *testing.T) {
 	messages := []ffi.LogMessage{
-		[]byte("float 1.0 1.2 1.23 1.234"),
-		[]byte("-float -1.0 -1.2 -1.23 -1.234"),
+		"float 1.0 1.2 1.23 1.234",
+		"-float -1.0 -1.2 -1.23 -1.234",
 	}
 	testLogMessagesBasic(t, messages)
 }
 
 func TestLogMessagesInt(t *testing.T) {
 	messages := []ffi.LogMessage{
-		[]byte("int 1 12 123 1234"),
-		[]byte("-int -1 -12 -123 -1234"),
+		"int 1 12 123 1234",
+		"-int -1 -12 -123 -1234",
 	}
 	testLogMessagesBasic(t, messages)
 }
 
 func TestLogMessagesStatic(t *testing.T) {
 	messages := []ffi.LogMessage{
-		[]byte("static text log zero."),
-		[]byte("static text log one."),
+		"static text log zero.",
+		"static text log one.",
 	}
 	testLogMessagesBasic(t, messages)
 }
@@ -75,8 +74,8 @@ func TestLogMessagesStatic(t *testing.T) {
 func TestLogMessagesLongLogs(t *testing.T) {
 	const eightMB int = 8 * 1024 * 1024
 	messages := []ffi.LogMessage{
-		[]byte(strings.Repeat("x", eightMB)),
-		[]byte(strings.Repeat("x", eightMB-1)),
+		strings.Repeat("x", eightMB),
+		strings.Repeat("x", eightMB-1),
 	}
 	testLogMessagesBasic(t, messages)
 }
@@ -132,7 +131,7 @@ func testLogMessages(
 	writer := openWriter(t, args)
 	irSerializer := serializeIRPreamble(t, args, preamble, writer)
 	for _, msg := range logMessages {
-		writeIRMsg(t, writer, irSerializer, msg)
+		writeIRLogMessage(t, writer, irSerializer, msg)
 	}
 
 	writer.Write([]byte{0x0})
@@ -248,28 +247,28 @@ func assertIRPreamble(
 	args testArgs,
 	reader io.Reader,
 	preamble preambleFields,
-) *StreamReader {
-	irreader, err := ReadPreamble(reader, 4096)
+) *Reader {
+	irreader, err := NewReaderSize(reader, 4096)
 	if nil != err {
-		t.Fatalf("ReadPreamble failed: %v", err)
+		t.Fatalf("NewReader failed: %v", err)
 	}
 	if irreader.TimestampInfo().Pattern != preamble.Pattern {
 		t.Fatalf(
-			"ReadPreamble wrong pattern: '%v' != '%v'",
+			"NewReader wrong pattern: '%v' != '%v'",
 			irreader.TimestampInfo().Pattern,
 			preamble.Pattern,
 		)
 	}
 	if irreader.TimestampInfo().PatternSyntax != preamble.PatternSyntax {
 		t.Fatalf(
-			"ReadPreamble wrong pattern syntax: '%v' != '%v'",
+			"NewReader wrong pattern syntax: '%v' != '%v'",
 			irreader.TimestampInfo().PatternSyntax,
 			preamble.PatternSyntax,
 		)
 	}
 	if irreader.TimestampInfo().TimeZoneId != preamble.TimeZoneId {
 		t.Fatalf(
-			"ReadPreamble wrong time zone id: '%v' != '%v'",
+			"NewReader wrong time zone id: '%v' != '%v'",
 			irreader.TimestampInfo().TimeZoneId,
 			preamble.TimeZoneId,
 		)
@@ -281,7 +280,7 @@ func assertIRPreamble(
 		}
 		if deserializer.prevTimestamp != preamble.prevTimestamp {
 			t.Fatalf(
-				"ReadPreamble wrong reference timestamp: '%v' != '%v'",
+				"NewReader wrong reference timestamp: '%v' != '%v'",
 				deserializer.prevTimestamp,
 				preamble.prevTimestamp,
 			)
@@ -290,14 +289,14 @@ func assertIRPreamble(
 	return irreader
 }
 
-func writeIRMsg(
+func writeIRLogMessage(
 	t *testing.T,
 	writer io.Writer,
 	serializer Serializer,
 	message ffi.LogMessage,
 ) {
 	event := ffi.LogEvent{
-		LogMessage: []byte(message),
+		LogMessage: message,
 		Timestamp:  ffi.EpochTimeMs(time.Now().UnixMilli()),
 	}
 	irview, err := serializer.SerializeLogEvent(event)
@@ -316,25 +315,25 @@ func writeIRMsg(
 func assertIRLogEvent(
 	t *testing.T,
 	reader io.Reader,
-	irreader *StreamReader,
+	irreader *Reader,
 	message ffi.LogMessage,
 ) {
-	log, err := irreader.ReadLogEvent()
+	log, err := irreader.Read()
 	if nil != err {
-		t.Fatalf("ReadLogEvent failed: %v", err)
+		t.Fatalf("Reader.Read failed: %v", err)
 	}
-	if false == bytes.Equal(log.LogMessageView, message) {
-		t.Fatalf("ReadLogEvent wrong message: '%v' != '%v'", log.LogMessageView, message)
+	if message != log.LogMessageView {
+		t.Fatalf("Reader.Read wrong message: '%v' != '%v'", log.LogMessageView, message)
 	}
-	t.Logf("'%v' : '%v'\n", log.Timestamp, string(log.LogMessageView))
+	t.Logf("'%v' : '%.128v'\n", log.Timestamp, log.LogMessageView)
 }
 
 func assertEOIR(
 	t *testing.T,
 	reader io.Reader,
-	irreader *StreamReader,
+	irreader *Reader,
 ) {
-	_, err := irreader.ReadLogEvent()
+	_, err := irreader.Read()
 	if EOIR != err {
 		t.Fatalf("assertEOIR failed got: %v", err)
 	}
