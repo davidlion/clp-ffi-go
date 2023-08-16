@@ -1,6 +1,7 @@
 package ir
 
 /*
+#include <ffi_go/defs.h>
 #include <ffi_go/ir/serializer.h>
 */
 import "C"
@@ -35,25 +36,20 @@ func EightByteSerializer(
 	ts_pattern_syntax string,
 	time_zone_id string,
 ) (Serializer, BufView, error) {
-	var buf unsafe.Pointer
-	var bufSize C.size_t
+	var irView C.ByteView
 	irs := eightByteSerializer{
 		commonSerializer{TimestampInfo{ts_pattern, ts_pattern_syntax, time_zone_id}, nil},
 	}
 	if err := IRError(C.ir_serializer_serialize_eight_byte_preamble(
-		(*C.char)(unsafe.Pointer(unsafe.StringData(ts_pattern))),
-		C.size_t(len(ts_pattern)),
-		(*C.char)(unsafe.Pointer(unsafe.StringData(ts_pattern_syntax))),
-		C.size_t(len(ts_pattern_syntax)),
-		(*C.char)(unsafe.Pointer(unsafe.StringData(time_zone_id))),
-		C.size_t(len(time_zone_id)),
+		newCStringView(ts_pattern),
+		newCStringView(ts_pattern_syntax),
+		newCStringView(time_zone_id),
 		&irs.cptr,
-		&buf,
-		&bufSize,
+		&irView,
 	)); Success != err {
 		return nil, nil, err
 	}
-	return &irs, unsafe.Slice((*byte)(buf), bufSize), nil
+	return &irs, unsafe.Slice((*byte)(irView.m_data), irView.m_size), nil
 }
 
 // FourByteSerializer creates and returns a new Serializer that writes four byte
@@ -68,27 +64,22 @@ func FourByteSerializer(
 	time_zone_id string,
 	reference_ts ffi.EpochTimeMs,
 ) (Serializer, BufView, error) {
-	var buf unsafe.Pointer
-	var bufSize C.size_t
+	var irView C.ByteView
 	irs := fourByteSerializer{
 		commonSerializer{TimestampInfo{ts_pattern, ts_pattern_syntax, time_zone_id}, nil},
 		reference_ts,
 	}
 	if err := IRError(C.ir_serializer_serialize_four_byte_preamble(
-		(*C.char)(unsafe.Pointer(unsafe.StringData(ts_pattern))),
-		C.size_t(len(ts_pattern)),
-		(*C.char)(unsafe.Pointer(unsafe.StringData(ts_pattern_syntax))),
-		C.size_t(len(ts_pattern_syntax)),
-		(*C.char)(unsafe.Pointer(unsafe.StringData(time_zone_id))),
-		C.size_t(len(time_zone_id)),
+		newCStringView(ts_pattern),
+		newCStringView(ts_pattern_syntax),
+		newCStringView(time_zone_id),
 		C.int64_t(reference_ts),
 		&irs.cptr,
-		&buf,
-		&bufSize,
+		&irView,
 	)); Success != err {
 		return nil, nil, err
 	}
-	return &irs, unsafe.Slice((*byte)(buf), bufSize), nil
+	return &irs, unsafe.Slice((*byte)(irView.m_data), irView.m_size), nil
 }
 
 // commonSerializer contains fields common to all types of CLP IR encoding.
@@ -154,26 +145,23 @@ func serializeLogEvent(
 	event ffi.LogEvent,
 ) (BufView, error) {
 	var err error
-	var buf unsafe.Pointer
-	var bufSize uint64
+	var irView C.ByteView
 
 	switch irs := serializer.(type) {
 	case *eightByteSerializer:
 		err = IRError(C.ir_serializer_serialize_eight_byte_log_event(
-			(*C.char)(unsafe.Pointer(unsafe.StringData(event.LogMessage))),
-			C.size_t(len(event.LogMessage)),
+			newCStringView(event.LogMessage),
 			C.int64_t(event.Timestamp),
 			irs.cptr,
-			&buf,
-			unsafe.Pointer(&bufSize)))
+			&irView,
+		))
 	case *fourByteSerializer:
 		err = IRError(C.ir_serializer_serialize_four_byte_log_event(
-			(*C.char)(unsafe.Pointer(unsafe.StringData(event.LogMessage))),
-			C.size_t(len(event.LogMessage)),
+			newCStringView(event.LogMessage),
 			C.int64_t(irs.prevTimestamp-event.Timestamp),
 			irs.cptr,
-			&buf,
-			unsafe.Pointer(&bufSize)))
+			&irView,
+		))
 		if Success == err {
 			irs.prevTimestamp = event.Timestamp
 		}
@@ -181,5 +169,5 @@ func serializeLogEvent(
 	if Success != err {
 		return nil, err
 	}
-	return unsafe.Slice((*byte)(buf), bufSize), nil
+	return unsafe.Slice((*byte)(irView.m_data), irView.m_size), nil
 }

@@ -7,9 +7,10 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/y-scope/clp-ffi-go/ffi"
+	"github.com/y-scope/clp-ffi-go/search"
 )
 
-func TestFourByteIRReader(t *testing.T) {
+func TestIRReader(t *testing.T) {
 	var fpath string = os.Getenv("go_test_ir")
 	if "" == fpath {
 		t.Skip("Set an input ir stream using the env variable: go_test_ir")
@@ -33,7 +34,11 @@ func TestFourByteIRReader(t *testing.T) {
 	for {
 		var log *ffi.LogEventView
 		// log, err = irr.Read()
-		log, err = irr.ReadToContains("ERROR")
+		// log, err = irr.ReadToContains("ERROR")
+		log, _, err = irr.ReadToWildcardMatch(
+			search.TimestampInterval{0, 999999999999},
+			[]search.WildcardQuery{{"*ERROR*", true}},
+		)
 		if nil != err {
 			break
 		}

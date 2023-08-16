@@ -4,38 +4,29 @@
 // header must support C, making modernize checks inapplicable
 // NOLINTBEGIN(modernize-deprecated-headers)
 // NOLINTBEGIN(modernize-use-trailing-return-type)
-// NOLINTBEGIN(modernize-use-using)
 
 #include <stdint.h>
 #include <stdlib.h>
 
-// TODO: replace with clp c-compatible header once it exists
-typedef int64_t epoch_time_ms_t;
+#include <ffi_go/defs.h>
 
 /**
  * Given the fields of a log event, serialize them into an IR byte stream with
  * eight byte encoding. An ir::Serializer must be provided to use as the backing
  * storage for the corresponding Go ir.Serializer. All pointer parameters must
  * be non-null (non-nil Cgo C.<type> pointer or unsafe.Pointer from Go).
- * @param[in] log_msg Log message to serialize
- * @param[in] log_msg_size Size of log_msg
- * @param[in] timestamp_delta Timestamp delta to the previous log event in the
- *     CLP IR stream
- * @param[in] ir_serializer ir::Serializer to be used as storage for the IR
- *     buffer
- * @param[out] ir_buf_ptr Address of a buffer containing the log event encoded
- *     as CLP IR with eight byte encoding
- * @param[out] ir_buf_size Size of the buffer of ir_buf_ptr
+ * @param[in] log_message Log message of the log event to serialize
+ * @param[in] timestamp Timestamp of the log event to serialize
+ * @param[in] ir_serializer ir::Serializer object to be used as storage
+ * @param[out] ir_view View of a IR buffer containing the serialized log event
  * @return ffi::ir_stream::IRErrorCode forwared from
  *   ffi::ir_stream::eight_byte_encoding::encode_message
  */
 int ir_serializer_serialize_eight_byte_log_event(
-        char const* log_msg,
-        size_t log_msg_size,
+        StringView log_message,
         epoch_time_ms_t timestamp,
         void* ir_serializer,
-        void** ir_buf_ptr,
-        void* ir_buf_size
+        ByteView* ir_view
 );
 
 /**
@@ -43,25 +34,19 @@ int ir_serializer_serialize_eight_byte_log_event(
  * four byte encoding. An ir::Serializer must be provided to use as the backing
  * storage for the corresponding Go ir.Serializer. All pointer parameters must
  * be non-null (non-nil Cgo C.<type> pointer or unsafe.Pointer from Go).
- * @param[in] log_msg Log message to serialize
- * @param[in] log_msg_size Size of log_msg
+ * @param[in] log_message Log message to serialize
  * @param[in] timestamp_delta Timestamp delta to the previous log event in the
- *     CLP IR stream
- * @param[in] ir_serializer ir::Serializer to be used as storage for the IR
- *     buffer
- * @param[out] ir_buf_ptr Address of a buffer containing the log event encoded
- *     as CLP IR with four byte encoding
- * @param[out] ir_buf_size Size of the buffer of ir_buf_ptr
+ *     IR stream
+ * @param[in] ir_serializer ir::Serializer object to be used as storage
+ * @param[out] ir_view View of a IR buffer containing the serialized log event
  * @return ffi::ir_stream::IRErrorCode forwared from
  *     ffi::ir_stream::four_byte_encoding::encode_message
  */
 int ir_serializer_serialize_four_byte_log_event(
-        char const* log_msg,
-        size_t log_msg_size,
+        StringView log_message,
         epoch_time_ms_t timestamp_delta,
         void* ir_serializer,
-        void** ir_buf_ptr,
-        void* ir_buf_size
+        ByteView* ir_view
 );
 
 /**
@@ -72,29 +57,20 @@ int ir_serializer_serialize_four_byte_log_event(
  * (non-nil Cgo C.<type> pointer or unsafe.Pointer from Go).
  * @param[in] ts_pattern Format string for the timestamp to be used when
  *     deserializing the IR
- * @param[in] ts_pattern_size Size of ts_pattern
  * @param[in] ts_pattern_syntax Type of the format string for understanding how
  *     to parse it
- * @param[in] ts_pattern_syntax_size Size of ts_pattern_syntax
  * @param[in] time_zone_id TZID timezone of the timestamps in the IR
- * @param[in] time_zone_id_size Size of time_zone_id
  * @param[out] ir_serializer_ptr Address of a new ir::Serializer
- * @param[out] ir_buf_ptr Address of a buffer containing a CLP IR preamble with
- *     eight byte encoding
- * @param[out] ir_buf_size Size of the IR buffer
+ * @param[out] ir_view View of a IR buffer containing the serialized preamble
  * @return ffi::ir_stream::IRErrorCode forwared from
  *     ffi::ir_stream::eight_byte_encoding::encode_preamble
  */
 int ir_serializer_serialize_eight_byte_preamble(
-        char const* ts_pattern,
-        size_t ts_pattern_size,
-        char const* ts_pattern_syntax,
-        size_t ts_pattern_syntax_size,
-        char const* time_zone_id,
-        size_t time_zone_id_size,
+        StringView ts_pattern,
+        StringView ts_pattern_syntax,
+        StringView time_zone_id,
         void** ir_serializer_ptr,
-        void** ir_buf_ptr,
-        size_t* ir_buf_size
+        ByteView* ir_view
 );
 
 /**
@@ -105,30 +81,21 @@ int ir_serializer_serialize_eight_byte_preamble(
  * (non-nil Cgo C.<type> pointer or unsafe.Pointer from Go).
  * @param[in] ts_pattern Format string for the timestamp to be used when
  *     deserializing the IR
- * @param[in] ts_pattern_size Size of ts_pattern
  * @param[in] ts_pattern_syntax Type of the format string for understanding how
  *     to parse it
- * @param[in] ts_pattern_syntax_size Size of ts_pattern_syntax
  * @param[in] time_zone_id TZID timezone of the timestamps in the IR
- * @param[in] time_zone_id_size Size of time_zone_id
  * @param[out] ir_serializer_ptr Address of a new ir::Serializer
- * @param[out] ir_buf_ptr Address of a buffer containing a CLP IR preamble with
- *     four byte encoding
- * @param[out] ir_buf_size Size of the IR buffer
+ * @param[out] ir_view View of a IR buffer containing the serialized preamble
  * @return ffi::ir_stream::IRErrorCode forwared from
  *     ffi::ir_stream::four_byte_encoding::encode_preamble
  */
 int ir_serializer_serialize_four_byte_preamble(
-        char const* ts_pattern,
-        size_t ts_pattern_size,
-        char const* ts_pattern_syntax,
-        size_t ts_pattern_syntax_size,
-        char const* time_zone_id,
-        size_t time_zone_id_size,
+        StringView ts_pattern,
+        StringView ts_pattern_syntax,
+        StringView time_zone_id,
         epoch_time_ms_t reference_ts,
         void** ir_serializer_ptr,
-        void** ir_buf_ptr,
-        size_t* ir_buf_size
+        ByteView* ir_view
 );
 
 /**
@@ -138,7 +105,6 @@ int ir_serializer_serialize_four_byte_preamble(
  */
 void ir_serializer_close(void* ir_serializer);
 
-// NOLINTEND(modernize-use-using)
 // NOLINTEND(modernize-use-trailing-return-type)
 // NOLINTEND(modernize-deprecated-headers)
 #endif  // FFI_GO_IR_SERIALIZER_H

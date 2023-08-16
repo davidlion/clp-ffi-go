@@ -162,14 +162,3 @@ func (self *fourByteEncoder) EncodeLogMessage(
 	}
 	return &logMsgView, nil
 }
-
-type logMessageCVars[T C.int64_t | C.int32_t] struct {
-	logtype               *C.char
-	logtypeSize           C.size_t
-	vars                  *T
-	varsSize              C.size_t
-	dictVars              *C.char
-	dictVarsSize          C.size_t
-	dictVarEndOffsets     *C.int32_t
-	dictVarEndOffsetsSize C.size_t
-}

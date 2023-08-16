@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/y-scope/clp-ffi-go/ffi"
+	"github.com/y-scope/clp-ffi-go/search"
 )
 
 // Reader abstracts maintenance of a buffer containing a [Deserializer]. It
@@ -86,6 +87,34 @@ func (self *Reader) Read() (*ffi.LogEventView, error) {
 	return event, nil
 }
 
+func (self *Reader) ReadToWildcardMatch(
+	timeInterval search.TimestampInterval,
+	queries []search.WildcardQuery,
+) (*ffi.LogEventView, int, error) {
+	var event *ffi.LogEventView
+	var pos int
+	var matching_query int
+	var err error
+	for {
+		event, pos, matching_query, err = self.DeserializeWildcardMatch(
+			self.buf[self.start:self.end],
+			timeInterval,
+			queries,
+		)
+		if IncompleteIR != err {
+			break
+		}
+		if _, err = self.fill_buf(); nil != err {
+			break
+		}
+	}
+	if nil != err {
+		return nil, -1, err
+	}
+	self.start += pos
+	return event, matching_query, nil
+}
+
 // Read the CLP IR byte stream until f returns true for a [ffi.LogEventView].
 // The successful LogEvent is returned. Errors are propagated from [Read].
 func (self *Reader) ReadToFunc(
@@ -100,11 +129,6 @@ func (self *Reader) ReadToFunc(
 			return event, nil
 		}
 	}
-}
-
-func (self *Reader) ReadToWildcardMatch(queries []Query) (*ffi.LogEventView, error) {
-	// TODO
-	return nil, nil
 }
 
 // Read the CLP IR stream until a [ffi.LogEventView] is greater than or equal to

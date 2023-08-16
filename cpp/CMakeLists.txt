@@ -39,6 +39,7 @@ add_library(${LIB_NAME}
     clp/components/core/src/ffi/encoding_methods.cpp
     clp/components/core/src/ffi/encoding_methods.hpp
     clp/components/core/src/ffi/encoding_methods.tpp
+    src/ffi_go/defs.h
     src/ffi_go/LogTypes.hpp
     src/ffi_go/ir/decoder.cpp
     src/ffi_go/ir/decoder.h
@@ -49,13 +50,13 @@ add_library(${LIB_NAME}
     src/ffi_go/ir/LogTypes.hpp
     src/ffi_go/ir/serializer.cpp
     src/ffi_go/ir/serializer.h
-    src/ffi_go/search/wildcard_match.cpp
-    src/ffi_go/search/wildcard_match.h
+    src/ffi_go/search/wildcard.cpp
+    src/ffi_go/search/wildcard.h
 )
 
 target_compile_features(${LIB_NAME}
     PRIVATE
-    cxx_std_17
+    cxx_std_20
 )
 
 target_include_directories(${LIB_NAME}

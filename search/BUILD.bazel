@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "search",
+    srcs = [
+        "wildcard.go",
+    ],
+    importpath = "github.com/y-scope/clp-ffi-go/search",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "go_default_library",
+    actual = ":search",
+    visibility = ["//visibility:public"],
+)

@@ -10,6 +10,15 @@
 // [log viewer]: https://github.com/y-scope/yscope-log-viewer
 package ir
 
+/*
+#include <ffi_go/defs.h>
+*/
+import "C"
+
+import (
+	"unsafe"
+)
+
 // Must match c++ equivalent types
 type (
 	EightByteEncoding = int64
@@ -45,4 +54,29 @@ type LogMessage[T EightByteEncoding | FourByteEncoding] struct {
 // object (e.g.  an [ir.Encoder]) that retuend x.
 type LogMessageView[T EightByteEncoding | FourByteEncoding] struct {
 	LogMessage[T]
+}
+
+func newCByteView(s []byte) C.ByteView {
+	return C.ByteView{
+		unsafe.Pointer(unsafe.SliceData(s)),
+		C.size_t(len(s)),
+	}
+}
+
+func newCStringView(s string) C.StringView {
+	return C.StringView{
+		(*C.char)(unsafe.Pointer(unsafe.StringData(s))),
+		C.size_t(len(s)),
+	}
+}
+
+type logMessageCVars[T C.int64_t | C.int32_t] struct {
+	logtype               *C.char
+	logtypeSize           C.size_t
+	vars                  *T
+	varsSize              C.size_t
+	dictVars              *C.char
+	dictVarsSize          C.size_t
+	dictVarEndOffsets     *C.int32_t
+	dictVarEndOffsetsSize C.size_t
 }

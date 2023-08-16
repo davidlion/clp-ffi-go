@@ -1,7 +1,9 @@
 package ir
 
 /*
+#include <ffi_go/defs.h>
 #include <ffi_go/ir/deserializer.h>
+#include <ffi_go/search/wildcard.h>
 */
 import "C"
 
@@ -11,6 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/y-scope/clp-ffi-go/ffi"
+	"github.com/y-scope/clp-ffi-go/search"
 )
 
 // A Deserializer exports functions to deserialize log events from a CLP IR byte
@@ -22,28 +25,30 @@ import (
 // into another object. Close must be called to free the underlying memory and
 // failure to do so will result in a memory leak.
 type Deserializer interface {
-	DeserializeLogEvent(buf []byte) (*ffi.LogEventView, int, error)
+	DeserializeLogEvent(irBuf []byte) (*ffi.LogEventView, int, error)
+	DeserializeWildcardMatch(
+		irBuf []byte,
+		timeInterval search.TimestampInterval,
+		queries []search.WildcardQuery,
+	) (*ffi.LogEventView, int, int, error)
 	TimestampInfo() TimestampInfo
 	Close() error
 }
 
-// DeserializePreamble attempts to read an IR stream preamble from buf,
+// DeserializePreamble attempts to read an IR stream preamble from irBuf,
 // returning an Deserializer (of the correct stream encoding size), the position
-// read to in buf (the end of the preamble), and an error. Note the metadata
+// read to in irBuf (the end of the preamble), and an error. Note the metadata
 // stored in the preamble is sparse and certain fields in TimestampInfo may be 0
 // value. On error returns:
 //   - nil Deserializer
 //   - 0 position
 //   - [IRError] error: CLP failed to successfully deserialize
 //   - [encoding/json] error: unmarshalling the metadata failed
-func DeserializePreamble(buf []byte) (Deserializer, int, error) {
-	if 0 >= len(buf) {
+func DeserializePreamble(irBuf []byte) (Deserializer, int, error) {
+	if 0 >= len(irBuf) {
 		return nil, 0, IncompleteIR
 	}
-	bufview := C.BufView{
-		unsafe.Pointer(unsafe.SliceData(buf)),
-		C.size_t(len(buf)),
-	}
+
 	var pos C.size_t
 	var irEncoding C.int8_t
 	var metadataType C.int8_t
@@ -51,7 +56,7 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 	var metadataSize C.uint16_t
 	var cptr unsafe.Pointer
 	if err := IRError(C.ir_deserializer_deserialize_preamble(
-		bufview,
+		newCByteView(irBuf),
 		&pos,
 		&irEncoding,
 		&metadataType,
@@ -68,7 +73,7 @@ func DeserializePreamble(buf []byte) (Deserializer, int, error) {
 
 	var metadata map[string]interface{}
 	if err := json.Unmarshal(
-		buf[metadataPos:metadataPos+C.size_t(metadataSize)],
+		irBuf[metadataPos:metadataPos+C.size_t(metadataSize)],
 		&metadata,
 	); nil != err {
 		return nil, 0, err
@@ -131,16 +136,16 @@ type eightByteDeserializer struct {
 }
 
 // DeserializeLogEvent attempts to read the next log event from the IR stream in
-// buf, returning the deserialized [ffi.LogEventView], the position read to in
-// buf (the end of the log event in buf), and an error. On error returns:
+// irBuf, returning the deserialized [ffi.LogEventView], the position read to in
+// irBuf (the end of the log event in irBuf), and an error. On error returns:
 //   - nil *ffi.LogEventView
 //   - 0 position
 //   - [IRError] error: CLP failed to successfully deserialize
 //   - [EOIR] error: CLP found the IR stream EOF tag
 func (self *eightByteDeserializer) DeserializeLogEvent(
-	buf []byte,
+	irBuf []byte,
 ) (*ffi.LogEventView, int, error) {
-	return deserializeLogEvent(self, buf)
+	return deserializeLogEvent(self, irBuf)
 }
 
 // fourByteDeserializer contains both a common CLP IR deserializer and stores
@@ -153,45 +158,56 @@ type fourByteDeserializer struct {
 }
 
 // DeserializeLogEvent attempts to read the next log event from the IR stream in
-// buf, returning the deserialized [ffi.LogEventView], the position read to in
-// buf (the end of the log event in buf), and an error. On error returns:
+// irBuf, returning the deserialized [ffi.LogEventView], the position read to in
+// irBuf (the end of the log event in irBuf), and an error. On error returns:
 //   - nil *ffi.LogEventView
 //   - 0 position
 //   - [IRError] error: CLP failed to successfully deserialize
 //   - [EOIR] error: CLP found the IR stream EOF tag
 func (self *fourByteDeserializer) DeserializeLogEvent(
-	buf []byte,
+	irBuf []byte,
 ) (*ffi.LogEventView, int, error) {
-	return deserializeLogEvent(self, buf)
+	return deserializeLogEvent(self, irBuf)
+}
+
+func (self *eightByteDeserializer) DeserializeWildcardMatch(
+	irBuf []byte,
+	timeInterval search.TimestampInterval,
+	queries []search.WildcardQuery,
+) (*ffi.LogEventView, int, int, error) {
+	return deserializeWildcardMatch(self, irBuf, timeInterval, queries)
+}
+
+func (self *fourByteDeserializer) DeserializeWildcardMatch(
+	irBuf []byte,
+	timeInterval search.TimestampInterval,
+	queries []search.WildcardQuery,
+) (*ffi.LogEventView, int, int, error) {
+	return deserializeWildcardMatch(self, irBuf, timeInterval, queries)
 }
 
 func deserializeLogEvent(
 	deserializer Deserializer,
-	buf []byte,
+	irBuf []byte,
 ) (*ffi.LogEventView, int, error) {
-	if 0 >= len(buf) {
+	if 0 >= len(irBuf) {
 		return nil, 0, IncompleteIR
 	}
-	bufview := C.BufView{
-		unsafe.Pointer(unsafe.SliceData(buf)),
-		C.size_t(len(buf)),
-	}
-	var pos C.size_t
-	var logevent C.CgoLogEvent
-	var event ffi.LogEventView
 
+	var pos C.size_t
+	var logevent C.LogEventView
 	var err error
 	switch irs := deserializer.(type) {
 	case *eightByteDeserializer:
 		err = IRError(C.ir_deserializer_deserialize_eight_byte_log_event(
-			bufview,
+			newCByteView(irBuf),
 			irs.cptr,
 			&pos,
 			&logevent,
 		))
 	case *fourByteDeserializer:
 		err = IRError(C.ir_deserializer_deserialize_four_byte_log_event(
-			bufview,
+			newCByteView(irBuf),
 			irs.cptr,
 			&pos,
 			&logevent,
@@ -200,10 +216,71 @@ func deserializeLogEvent(
 	if Success != err {
 		return nil, 0, err
 	}
+
+	var event ffi.LogEventView
 	event.LogMessageView = unsafe.String(
-		(*byte)((unsafe.Pointer)(logevent.m_log_message)),
-		logevent.m_log_message_size,
+		(*byte)((unsafe.Pointer)(logevent.m_log_message.m_data)),
+		logevent.m_log_message.m_size,
 	)
 	event.Timestamp = ffi.EpochTimeMs(logevent.m_timestamp)
 	return &event, int(pos), nil
+}
+
+func deserializeWildcardMatch(
+	deserializer Deserializer,
+	irBuf []byte,
+	timeInterval search.TimestampInterval,
+	queries []search.WildcardQuery,
+) (*ffi.LogEventView, int, int, error) {
+	if 0 >= len(irBuf) {
+		return nil, 0, -1, IncompleteIR
+	}
+
+	cqueries := make([]C.WildcardQueryView, len(queries))
+	for i, query := range queries {
+		cqueries[i].m_query.m_data = (*C.char)(unsafe.Pointer(unsafe.StringData(query.Query)))
+		cqueries[i].m_query.m_size = C.size_t(len(query.Query))
+		if query.CaseSensitive {
+			cqueries[i].m_case_sensitive = 1
+		}
+	}
+	var pos C.size_t
+	var logevent C.LogEventView
+	var matching_query_idx C.size_t
+	var err error
+	switch irs := deserializer.(type) {
+	case *eightByteDeserializer:
+		err = IRError(C.ir_deserializer_deserialize_eight_byte_wildcard_match(
+			newCByteView(irBuf),
+			irs.cptr,
+			C.TimestampInterval{C.int64_t(timeInterval.Lower), C.int64_t(timeInterval.Upper)},
+			(*C.WildcardQueryView)(unsafe.Pointer(unsafe.SliceData(cqueries))),
+			C.size_t(len(cqueries)),
+			&pos,
+			&logevent,
+			&matching_query_idx,
+		))
+	case *fourByteDeserializer:
+		err = IRError(C.ir_deserializer_deserialize_four_byte_wildcard_match(
+			newCByteView(irBuf),
+			irs.cptr,
+			C.TimestampInterval{C.int64_t(timeInterval.Lower), C.int64_t(timeInterval.Upper)},
+			(*C.WildcardQueryView)(unsafe.Pointer(unsafe.SliceData(cqueries))),
+			C.size_t(len(cqueries)),
+			&pos,
+			&logevent,
+			&matching_query_idx,
+		))
+	}
+	if Success != err {
+		return nil, 0, -1, err
+	}
+
+	var event ffi.LogEventView
+	event.LogMessageView = unsafe.String(
+		(*byte)((unsafe.Pointer)(logevent.m_log_message.m_data)),
+		logevent.m_log_message.m_size,
+	)
+	event.Timestamp = ffi.EpochTimeMs(logevent.m_timestamp)
+	return &event, int(pos), int(matching_query_idx), nil
 }

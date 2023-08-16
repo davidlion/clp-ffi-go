@@ -17,9 +17,9 @@ using LogMessage = std::string;
  * ffi.LogEventView (without any warning or way to guard in Go).
  */
 struct LogEvent {
-    auto reserve(size_t cap) -> void { m_log_msg.reserve(cap); }
+    auto reserve(size_t cap) -> void { m_log_message.reserve(cap); }
 
-    LogMessage m_log_msg;
+    LogMessage m_log_message;
 };
 }  // namespace ffi_go
 

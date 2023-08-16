@@ -8,23 +8,26 @@
 
 #include <stdlib.h>
 
+#include <ffi_go/defs.h>
+
+/**
+ * A view of a wildcard query passed down from Go. The query string must first
+ * be cleaned using the CLP function `clean_up_wildcard_search_string`.
+ * m_case_sensitive is 1 for a case sensitive query (0 for case insensitive).
+ */
+typedef struct {
+    StringView m_query;
+    int m_case_sensitive;
+} WildcardQueryView;
+
 /**
  * Given a target string perform CLP wildcard matching using query. The query is
  * first cleaned using CLP's `clean_up_wildcard_search_string`.
  * @param[in] target String to perform matching on
- * @param[in] target_size Size of target
  * @param[in] query Query to use for matching
- * @param[in] query_size Size of query
- * @param[in] case_sensitive 1 for case sensitive, 0 for insensitive
  * @return 1 if query matches target, 0 otherwise
  */
-int wildcard_match(
-        char const* target,
-        size_t target_size,
-        char const* query,
-        size_t query_size,
-        int case_sensitive
-);
+int wildcard_match(StringView target, WildcardQueryView query);
 
 // NOLINTEND(modernize-use-using)
 // NOLINTEND(modernize-use-trailing-return-type)
