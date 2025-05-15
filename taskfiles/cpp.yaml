@@ -1,0 +1,92 @@
+version: "3"
+
+includes:
+  deps: "deps.yaml"
+  utils: "../tools/yscope-dev-utils/exports/taskfiles/utils/utils.yaml"
+
+vars:
+  G_INSTALL_PREFIX: "{{.TASKFILE_DIR}}"
+  G_INSTALL_INCLUDE_DIR: "{{.G_INSTALL_PREFIX}}/include/clp-ffi-go"
+  G_INSTALL_LIB: >-
+    {{printf "%s/lib/libclp-ffi-go_%s_%s.a" .G_INSTALL_PREFIX OS ARCH}}
+
+tasks:
+  build-debug:
+    deps:
+      - "deps:all"
+    cmds:
+      - task: "utils:cmake:generate"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}/debug"
+          EXTRA_ARGS:
+            - "-DCMAKE_BUILD_TYPE=debug"
+            - "-DOS_SUFFIX={{OS}}"
+            - "-DARCH_SUFFIX={{ARCH}}"
+          SOURCE_DIR: "{{.ROOT_DIR}}/cpp"
+      - task: "utils:cmake:build"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}/debug"
+
+  build-release:
+    deps:
+      - "deps:all"
+    cmds:
+      - task: "utils:cmake:generate"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}"
+          EXTRA_ARGS:
+            - "-DCMAKE_BUILD_TYPE={{.G_BUILD_TYPE}}"
+            - "-DOS_SUFFIX={{OS}}"
+            - "-DARCH_SUFFIX={{ARCH}}"
+          SOURCE_DIR: "{{.TASKFILE_DIR}}/cpp"
+      - task: "utils:cmake:build"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}"
+
+  install-debug:
+    deps:
+      - "build-debug"
+      - "clean-install"
+    cmds:
+      - task: "utils:cmake:install"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}/debug"
+          INSTALL_PREFIX: "{{.G_INSTALL_PREFIX}}"
+
+  install-release:
+    deps:
+      - "build-release"
+      - "clean-install"
+    cmds:
+      - task: "utils:cmake:install"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}/release"
+          INSTALL_PREFIX: "{{.G_INSTALL_PREFIX}}"
+
+  clean:
+    deps:
+      - "clean-debug"
+      - "clean-release"
+      - "clean-install"
+
+  clean-debug:
+    status:
+      - test ! -d "{{.G_BUILD_DIR}}/debug"
+    cmds:
+      - task: "utils:cmake:clean"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}/debug"
+
+  clean-release:
+    status:
+      - test ! -d "{{.G_BUILD_DIR}}/release"
+    cmds:
+      - task: "utils:cmake:clean"
+        vars:
+          BUILD_DIR: "{{.G_BUILD_DIR}}/release"
+
+  clean-install:
+    cmds:
+      - |-
+        rm -fr "{{.G_INSTALL_INCLUDE_DIR}}"
+        rm -f "{{.G_INSTALL_LIB}}"
