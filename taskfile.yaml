@@ -12,6 +12,12 @@ includes:
 
 vars:
   G_BUILD_DIR: "{{.ROOT_DIR}}/build"
+  G_INSTALL_PREFIX: "{{.ROOT_DIR}}/pre-built"
+  G_INSTALL_INCLUDE_DIR: "{{.G_INSTALL_PREFIX}}/include/clp-ffi-go"
+
+  # NOTE: This path must be kept in-sync with its usage in CMakeLists.txt.
+  G_INSTALL_LIB: >-
+    {{printf "%s/lib/libclp-ffi-go_%s_%s.a" .G_INSTALL_PREFIX OS ARCH}}
 
 tasks:
   build:
@@ -22,7 +28,8 @@ tasks:
   clean:
     deps:
       - "bazel:clean"
-      - "cpp:clean"
+      - "cpp:clean-debug"
+      - "cpp:clean-release"
       - "go:clean"
     cmd: "rm -fr {{.G_BUILD_DIR}}"
 

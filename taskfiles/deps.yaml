@@ -23,10 +23,12 @@ tasks:
     run: "once"
     deps:
       - "clp"
+      - "msgpack-cxx"
       - "ystdlib"
 
   clp:
     internal: true
+    run: "once"
     deps:
       - "msgpack-cxx"
       - "nlohmann_json"
@@ -51,13 +53,13 @@ tasks:
     cmds:
       - task: "utils:cmake:install-remote-tar"
         vars:
-          CMAKE_SETTINGS_DIR: "{{.G_DEPS_CMAKE_SETTINGS_DIR}}"
-          FILE_SHA256: "070881ebea9208cf7e731fd5a46a11404025b2f260ab9527e32dfcb7c689fbfc"
-          GEN_ARGS:
+          CMAKE_GEN_ARGS:
             - "-DMSGPACK_CXX20=ON"
             - "-DMSGPACK_USE_BOOST=OFF"
-          NAME: "msgpack-cxx"
-          URL: "https://github.com/msgpack/msgpack-c/archive/refs/tags/cpp-7.0.0.tar.gz"
+          CMAKE_PACKAGE_NAME: "msgpack-cxx"
+          CMAKE_SETTINGS_DIR: "{{.G_DEPS_CMAKE_SETTINGS_DIR}}"
+          TAR_SHA256: "070881ebea9208cf7e731fd5a46a11404025b2f260ab9527e32dfcb7c689fbfc"
+          TAR_URL: "https://github.com/msgpack/msgpack-c/archive/refs/tags/cpp-7.0.0.tar.gz"
           WORK_DIR: "{{.G_DEPS_DIR}}"
 
   nlohmann_json:
@@ -66,14 +68,14 @@ tasks:
     cmds:
       - task: "utils:cmake:install-remote-tar"
         vars:
-          CMAKE_SETTINGS_DIR: "{{.G_DEPS_CMAKE_SETTINGS_DIR}}"
-          FILE_SHA256: "d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d"
-          GEN_ARGS:
+          CMAKE_GEN_ARGS:
             - "-DCMAKE_BUILD_TYPE=Release"
             - "-DCMAKE_INSTALL_MESSAGE=LAZY"
             - "-DJSON_BuildTests=OFF"
-          NAME: "nlohmann_json"
-          URL: "https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz"
+          CMAKE_PACKAGE_NAME: "nlohmann_json"
+          CMAKE_SETTINGS_DIR: "{{.G_DEPS_CMAKE_SETTINGS_DIR}}"
+          TAR_SHA256: "d6c65aca6b1ed68e7a182f4757257b107ae403032760ed6ef121c9d55e81757d"
+          TAR_URL: "https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz"
           WORK_DIR: "{{.G_DEPS_DIR}}"
 
   outcome:

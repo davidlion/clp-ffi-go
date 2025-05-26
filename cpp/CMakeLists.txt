@@ -8,7 +8,6 @@ project(clp-ffi-go
 )
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-option(log_surgeon_BUILD_TESTING "Build the testing tree." ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS
     ON
@@ -108,10 +107,10 @@ target_sources(${LIB_NAME}
     FILE_SET HEADERS
         BASE_DIRS src/
         FILES
-        src/ffi_go/api_decoration.h
-        src/ffi_go/defs.h
-        src/ffi_go/ir/deserializer.h
-        src/ffi_go/ir/serializer.h
+        src/clp_ffi_go/api_decoration.h
+        src/clp_ffi_go/defs.h
+        src/clp_ffi_go/ir/deserializer.h
+        src/clp_ffi_go/ir/serializer.h
     PRIVATE
     ${CLP_SOURCE_DIR}/clp/ffi/SchemaTree.cpp
     ${CLP_SOURCE_DIR}/clp/ir/parsing.cpp
@@ -154,9 +153,10 @@ target_sources(${LIB_NAME}
     ${CLP_SOURCE_DIR}/clp/TraceableException.hpp
     ${CLP_SOURCE_DIR}/clp/time_types.hpp
     ${CLP_SOURCE_DIR}/clp/type_utils.hpp
-    src/ffi_go/ir/deserializer.cpp
-    src/ffi_go/ir/serializer.cpp
-    src/lint/msgpack.hpp
+    src/clp_ffi_go/ir/deserializer.cpp
+    src/clp_ffi_go/ir/ErrorCode.hpp
+    src/clp_ffi_go/ir/ErrorCode.cpp
+    src/clp_ffi_go/ir/serializer.cpp
 )
 
 install(TARGETS ${LIB_NAME}
